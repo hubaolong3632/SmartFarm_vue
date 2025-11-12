@@ -4,12 +4,13 @@ import com.greenhouse.common.Result;
 import com.greenhouse.dto.PlotAssignmentDTO;
 import com.greenhouse.dto.PlotScheduleDTO;
 import com.greenhouse.entity.*;
-import com.greenhouse.repository.*;
+import com.greenhouse.mapper.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
@@ -23,18 +24,18 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PlotController {
     
-    private final PlotRepository plotRepository;
-    private final PlotAssignmentRepository plotAssignmentRepository;
-    private final PlotScheduleRepository plotScheduleRepository;
-    private final RecipeRepository recipeRepository;
-    private final ExecutionLogRepository executionLogRepository;
+    private final PlotMapper plotMapper;
+    private final PlotAssignmentMapper plotAssignmentMapper;
+    private final PlotScheduleMapper plotScheduleMapper;
+    private final RecipeMapper recipeMapper;
+    private final ExecutionLogMapper executionLogMapper;
     
     /**
      * 获取所有地块
      */
     @GetMapping
     public Result<List<Plot>> getAll() {
-        return Result.success(plotRepository.findAll());
+        return Result.success(plotMapper.selectList(null));
     }
     
     /**
@@ -45,30 +46,39 @@ public class PlotController {
     public Result<PlotAssignment> assignRecipe(
             @PathVariable Integer plotId,
             @Valid @RequestBody PlotAssignmentDTO dto) {
-        Plot plot = plotRepository.findById(plotId)
-                .orElseThrow(() -> new IllegalArgumentException("地块不存在: " + plotId));
-        Recipe recipe = recipeRepository.findById(dto.getRecipeId())
-                .orElseThrow(() -> new IllegalArgumentException("配方不存在: " + dto.getRecipeId()));
+        Plot plot = plotMapper.selectById(plotId);
+        if (plot == null) {
+            throw new IllegalArgumentException("地块不存在: " + plotId);
+        }
+        Recipe recipe = recipeMapper.selectById(dto.getRecipeId());
+        if (recipe == null) {
+            throw new IllegalArgumentException("配方不存在: " + dto.getRecipeId());
+        }
         
         // 取消之前的激活分配
-        plotAssignmentRepository.deactivateByPlotId(plotId);
+        plotAssignmentMapper.deactivateByPlotId(plotId);
         
         // 创建新分配
         PlotAssignment assignment = new PlotAssignment();
-        assignment.setPlot(plot);
-        assignment.setRecipe(recipe);
+        assignment.setPlotId(plotId);
+        assignment.setRecipeId(dto.getRecipeId());
+        assignment.setAssignedAt(LocalDateTime.now());
         assignment.setIsActive(true);
-        PlotAssignment saved = plotAssignmentRepository.save(assignment);
+        assignment.setCreatedAt(LocalDateTime.now());
+        assignment.setUpdatedAt(LocalDateTime.now());
+        plotAssignmentMapper.insert(assignment);
         
         // 记录执行日志
         ExecutionLog log = new ExecutionLog();
-        log.setPlot(plot);
-        log.setRecipe(recipe);
+        log.setPlotId(plotId);
+        log.setRecipeId(dto.getRecipeId());
         log.setExecutions(dto.getExecutions() != null ? dto.getExecutions() : 1);
         log.setExecutionType("manual");
-        executionLogRepository.save(log);
+        log.setExecutedAt(LocalDateTime.now());
+        log.setCreatedAt(LocalDateTime.now());
+        executionLogMapper.insert(log);
         
-        return Result.success(saved);
+        return Result.success(assignment);
     }
     
     /**
@@ -76,8 +86,7 @@ public class PlotController {
      */
     @GetMapping("/{plotId}/assignment")
     public Result<PlotAssignment> getAssignment(@PathVariable Integer plotId) {
-        PlotAssignment assignment = plotAssignmentRepository.findByPlotIdAndIsActiveTrue(plotId)
-                .orElse(null);
+        PlotAssignment assignment = plotAssignmentMapper.findByPlotIdAndIsActiveTrue(plotId);
         return Result.success(assignment);
     }
     
@@ -89,19 +98,26 @@ public class PlotController {
     public Result<PlotSchedule> addSchedule(
             @PathVariable Integer plotId,
             @Valid @RequestBody PlotScheduleDTO dto) {
-        Plot plot = plotRepository.findById(plotId)
-                .orElseThrow(() -> new IllegalArgumentException("地块不存在: " + plotId));
-        Recipe recipe = recipeRepository.findById(dto.getRecipeId())
-                .orElseThrow(() -> new IllegalArgumentException("配方不存在: " + dto.getRecipeId()));
+        Plot plot = plotMapper.selectById(plotId);
+        if (plot == null) {
+            throw new IllegalArgumentException("地块不存在: " + plotId);
+        }
+        Recipe recipe = recipeMapper.selectById(dto.getRecipeId());
+        if (recipe == null) {
+            throw new IllegalArgumentException("配方不存在: " + dto.getRecipeId());
+        }
         
         PlotSchedule schedule = new PlotSchedule();
-        schedule.setPlot(plot);
-        schedule.setRecipe(recipe);
+        schedule.setPlotId(plotId);
+        schedule.setRecipeId(dto.getRecipeId());
         schedule.setScheduleTime(LocalTime.parse(dto.getTimeHHmm()));
         schedule.setExecutions(dto.getExecutions() != null ? dto.getExecutions() : 1);
         schedule.setIsEnabled(true);
+        schedule.setCreatedAt(LocalDateTime.now());
+        schedule.setUpdatedAt(LocalDateTime.now());
+        plotScheduleMapper.insert(schedule);
         
-        return Result.success(plotScheduleRepository.save(schedule));
+        return Result.success(schedule);
     }
     
     /**
@@ -109,7 +125,7 @@ public class PlotController {
      */
     @GetMapping("/{plotId}/schedules")
     public Result<List<PlotSchedule>> getSchedules(@PathVariable Integer plotId) {
-        List<PlotSchedule> schedules = plotScheduleRepository.findByPlotIdOrderByScheduleTimeAsc(plotId);
+        List<PlotSchedule> schedules = plotScheduleMapper.findByPlotIdOrderByScheduleTimeAsc(plotId);
         return Result.success(schedules);
     }
     
@@ -119,7 +135,7 @@ public class PlotController {
     @DeleteMapping("/schedules/{scheduleId}")
     @Transactional
     public Result<Void> deleteSchedule(@PathVariable Long scheduleId) {
-        plotScheduleRepository.deleteById(scheduleId);
+        plotScheduleMapper.deleteById(scheduleId);
         return Result.success();
     }
     
@@ -128,16 +144,19 @@ public class PlotController {
      */
     @GetMapping("/assignments")
     public Result<Map<Integer, PlotAssignment>> getAllAssignments() {
-        List<PlotAssignment> assignments = plotAssignmentRepository.findAll()
+        List<PlotAssignment> assignments = plotAssignmentMapper.selectList(null)
                 .stream()
                 .filter(PlotAssignment::getIsActive)
                 .collect(Collectors.toList());
+        // 需要查询地块信息来获取 plotNumber
         Map<Integer, PlotAssignment> map = assignments.stream()
                 .collect(Collectors.toMap(
-                        a -> a.getPlot().getPlotNumber(),
+                        a -> {
+                            Plot plot = plotMapper.selectById(a.getPlotId());
+                            return plot != null ? plot.getPlotNumber() : a.getPlotId();
+                        },
                         a -> a
                 ));
         return Result.success(map);
     }
 }
-

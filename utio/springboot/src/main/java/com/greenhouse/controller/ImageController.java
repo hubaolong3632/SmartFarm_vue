@@ -3,9 +3,8 @@ package com.greenhouse.controller;
 import com.greenhouse.common.Result;
 import com.greenhouse.dto.ImageDTO;
 import com.greenhouse.entity.Image;
-import com.greenhouse.entity.Plot;
-import com.greenhouse.repository.ImageRepository;
-import com.greenhouse.repository.PlotRepository;
+import com.greenhouse.mapper.ImageMapper;
+import com.greenhouse.mapper.PlotMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -25,8 +24,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ImageController {
     
-    private final ImageRepository imageRepository;
-    private final PlotRepository plotRepository;
+    private final ImageMapper imageMapper;
+    private final PlotMapper plotMapper;
     
     /**
      * 创建图片记录
@@ -40,11 +39,8 @@ public class ImageController {
         image.setTemperatureC(dto.getTemperatureC());
         image.setSoilMoisturePct(dto.getSoilMoisturePct());
         image.setLightLux(dto.getLightLux());
-        if (dto.getPlotId() != null) {
-            Plot plot = plotRepository.findById(dto.getPlotId())
-                    .orElse(null);
-            image.setPlot(plot);
-        }
+        image.setPlotId(dto.getPlotId());
+        
         // 判断是否异常
         boolean isAbnormal = false;
         String abnormalReason = null;
@@ -61,8 +57,10 @@ public class ImageController {
         }
         image.setIsAbnormal(isAbnormal);
         image.setAbnormalReason(abnormalReason);
+        image.setCreatedAt(LocalDateTime.now());
         
-        return Result.success(imageRepository.save(image));
+        imageMapper.insert(image);
+        return Result.success(image);
     }
     
     /**
@@ -78,10 +76,8 @@ public class ImageController {
             image.setTemperatureC(dto.getTemperatureC());
             image.setSoilMoisturePct(dto.getSoilMoisturePct());
             image.setLightLux(dto.getLightLux());
-            if (dto.getPlotId() != null) {
-                Plot plot = plotRepository.findById(dto.getPlotId()).orElse(null);
-                image.setPlot(plot);
-            }
+            image.setPlotId(dto.getPlotId());
+            
             // 判断是否异常
             boolean isAbnormal = false;
             String abnormalReason = null;
@@ -98,9 +94,11 @@ public class ImageController {
             }
             image.setIsAbnormal(isAbnormal);
             image.setAbnormalReason(abnormalReason);
+            image.setCreatedAt(LocalDateTime.now());
+            imageMapper.insert(image);
             return image;
         }).toList();
-        return Result.success(imageRepository.saveAll(images));
+        return Result.success(images);
     }
     
     /**
@@ -109,7 +107,7 @@ public class ImageController {
     @GetMapping("/date/{date}")
     public Result<List<Image>> getByDate(
             @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
-        List<Image> images = imageRepository.findByDate(date);
+        List<Image> images = imageMapper.findByDate(date);
         return Result.success(images);
     }
     
@@ -118,7 +116,7 @@ public class ImageController {
      */
     @GetMapping("/abnormal")
     public Result<List<Image>> getAbnormal() {
-        return Result.success(imageRepository.findByIsAbnormalTrueOrderByRecordTimeDesc());
+        return Result.success(imageMapper.findByIsAbnormalTrueOrderByRecordTimeDesc());
     }
     
     /**
@@ -126,7 +124,6 @@ public class ImageController {
      */
     @GetMapping("/plot/{plotId}")
     public Result<List<Image>> getByPlotId(@PathVariable Integer plotId) {
-        return Result.success(imageRepository.findByPlotIdOrderByRecordTimeDesc(plotId));
+        return Result.success(imageMapper.findByPlotIdOrderByRecordTimeDesc(plotId));
     }
 }
-

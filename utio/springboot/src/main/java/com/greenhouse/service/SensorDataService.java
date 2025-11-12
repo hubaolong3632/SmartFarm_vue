@@ -1,8 +1,9 @@
 package com.greenhouse.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.greenhouse.dto.SensorDataDTO;
 import com.greenhouse.entity.SensorData;
-import com.greenhouse.repository.SensorDataRepository;
+import com.greenhouse.mapper.SensorDataMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SensorDataService {
     
-    private final SensorDataRepository sensorDataRepository;
+    private final SensorDataMapper sensorDataMapper;
     
     /**
      * 创建传感器数据
@@ -33,15 +34,17 @@ public class SensorDataService {
         sensorData.setSoilMoisturePct(dto.getSoilMoisturePct());
         sensorData.setLightLux(dto.getLightLux());
         sensorData.setIsRaining(dto.getIsRaining());
-        return sensorDataRepository.save(sensorData);
+        sensorData.setCreatedAt(LocalDateTime.now());
+        sensorData.setUpdatedAt(LocalDateTime.now());
+        sensorDataMapper.insert(sensorData);
+        return sensorData;
     }
     
     /**
      * 获取最新数据
      */
     public SensorData getLatest() {
-        return sensorDataRepository.findFirstByOrderByRecordTimeDesc()
-                .orElse(null);
+        return sensorDataMapper.findLatest();
     }
     
     /**
@@ -50,14 +53,17 @@ public class SensorDataService {
     public List<SensorData> getLast24Hours() {
         LocalDateTime endTime = LocalDateTime.now();
         LocalDateTime startTime = endTime.minusHours(23);
-        return sensorDataRepository.findLast24Hours(startTime, endTime);
+        return sensorDataMapper.findLast24Hours(startTime, endTime);
     }
     
     /**
      * 获取指定时间范围的数据
      */
     public List<SensorData> getByTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
-        return sensorDataRepository.findByRecordTimeBetweenOrderByRecordTimeAsc(startTime, endTime);
+        LambdaQueryWrapper<SensorData> wrapper = new LambdaQueryWrapper<>();
+        wrapper.between(SensorData::getRecordTime, startTime, endTime)
+               .orderByAsc(SensorData::getRecordTime);
+        return sensorDataMapper.selectList(wrapper);
     }
     
     /**
@@ -72,9 +78,15 @@ public class SensorDataService {
             sensorData.setSoilMoisturePct(dto.getSoilMoisturePct());
             sensorData.setLightLux(dto.getLightLux());
             sensorData.setIsRaining(dto.getIsRaining());
+            sensorData.setCreatedAt(LocalDateTime.now());
+            sensorData.setUpdatedAt(LocalDateTime.now());
             return sensorData;
         }).collect(Collectors.toList());
-        return sensorDataRepository.saveAll(sensorDataList);
+        
+        for (SensorData sensorData : sensorDataList) {
+            sensorDataMapper.insert(sensorData);
+        }
+        return sensorDataList;
     }
 }
 

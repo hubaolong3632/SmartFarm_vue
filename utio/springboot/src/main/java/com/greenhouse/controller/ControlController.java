@@ -2,11 +2,12 @@ package com.greenhouse.controller;
 
 import com.greenhouse.common.Result;
 import com.greenhouse.entity.ControlLog;
-import com.greenhouse.repository.ControlLogRepository;
+import com.greenhouse.mapper.ControlLogMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +20,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ControlController {
     
-    private final ControlLogRepository controlLogRepository;
+    private final ControlLogMapper controlLogMapper;
     
     /**
      * 清理搅拌熔炉
@@ -32,7 +33,8 @@ public class ControlController {
         log.setAction("start");
         log.setStatus("success");
         log.setMessage("清理搅拌熔炉操作已启动");
-        controlLogRepository.save(log);
+        log.setCreatedAt(LocalDateTime.now());
+        controlLogMapper.insert(log);
         
         Map<String, Object> result = new HashMap<>();
         result.put("status", "success");
@@ -55,7 +57,8 @@ public class ControlController {
         log.setAction(action);
         log.setStatus("success");
         log.setMessage("植物补光灯已" + ("on".equals(action) ? "打开" : "关闭"));
-        controlLogRepository.save(log);
+        log.setCreatedAt(LocalDateTime.now());
+        controlLogMapper.insert(log);
         
         Map<String, Object> result = new HashMap<>();
         result.put("status", "success");
@@ -69,7 +72,6 @@ public class ControlController {
      */
     @GetMapping("/logs")
     public Result<List<ControlLog>> getLogs() {
-        return Result.success(controlLogRepository.findAll());
+        return Result.success(controlLogMapper.selectList(null));
     }
 }
-

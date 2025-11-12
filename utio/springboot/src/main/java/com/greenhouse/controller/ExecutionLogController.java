@@ -2,7 +2,7 @@ package com.greenhouse.controller;
 
 import com.greenhouse.common.Result;
 import com.greenhouse.entity.ExecutionLog;
-import com.greenhouse.repository.ExecutionLogRepository;
+import com.greenhouse.mapper.ExecutionLogMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -20,14 +20,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ExecutionLogController {
     
-    private final ExecutionLogRepository executionLogRepository;
+    private final ExecutionLogMapper executionLogMapper;
     
     /**
      * 获取所有执行日志
      */
     @GetMapping
     public Result<List<ExecutionLog>> getAll() {
-        return Result.success(executionLogRepository.findAll());
+        return Result.success(executionLogMapper.selectList(null));
     }
     
     /**
@@ -35,7 +35,7 @@ public class ExecutionLogController {
      */
     @GetMapping("/plot/{plotId}")
     public Result<List<ExecutionLog>> getByPlotId(@PathVariable Integer plotId) {
-        List<ExecutionLog> logs = executionLogRepository.findByPlotIdOrderByExecutedAtDesc(plotId);
+        List<ExecutionLog> logs = executionLogMapper.findByPlotIdOrderByExecutedAtDesc(plotId);
         return Result.success(logs);
     }
     
@@ -47,7 +47,7 @@ public class ExecutionLogController {
         LocalDateTime endTime = LocalDateTime.now();
         LocalDateTime startTime = endTime.minusHours(23);
         
-        List<Object[]> results = executionLogRepository.findExecutionsByHour(startTime, endTime);
+        List<Object[]> results = executionLogMapper.findExecutionsByHour(startTime, endTime);
         List<Map<String, Object>> data = results.stream().map(row -> {
             return Map.of(
                     "time", row[0],
@@ -65,8 +65,7 @@ public class ExecutionLogController {
     public Result<List<ExecutionLog>> getByTimeRange(
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime) {
-        List<ExecutionLog> logs = executionLogRepository.findByExecutedAtBetweenOrderByExecutedAtDesc(startTime, endTime);
+        List<ExecutionLog> logs = executionLogMapper.findByExecutedAtBetweenOrderByExecutedAtDesc(startTime, endTime);
         return Result.success(logs);
     }
 }
-

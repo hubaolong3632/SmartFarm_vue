@@ -2,11 +2,12 @@ package com.greenhouse.controller;
 
 import com.greenhouse.common.Result;
 import com.greenhouse.entity.AutomationSetting;
-import com.greenhouse.repository.AutomationSettingRepository;
+import com.greenhouse.mapper.AutomationSettingMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,14 +20,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AutomationController {
     
-    private final AutomationSettingRepository automationSettingRepository;
+    private final AutomationSettingMapper automationSettingMapper;
     
     /**
      * 获取所有自动化设置
      */
     @GetMapping
     public Result<Map<String, Object>> getAll() {
-        List<AutomationSetting> settings = automationSettingRepository.findAll();
+        List<AutomationSetting> settings = automationSettingMapper.selectList(null);
         Map<String, Object> result = new HashMap<>();
         settings.forEach(setting -> {
             try {
@@ -56,11 +57,19 @@ public class AutomationController {
     @Transactional
     public Result<Map<String, Object>> update(@RequestBody Map<String, Object> settings) {
         settings.forEach((key, value) -> {
-            AutomationSetting setting = automationSettingRepository.findBySettingKey(key)
-                    .orElse(new AutomationSetting());
-            setting.setSettingKey(key);
-            setting.setSettingValue(String.valueOf(value));
-            automationSettingRepository.save(setting);
+            AutomationSetting setting = automationSettingMapper.findBySettingKey(key);
+            if (setting == null) {
+                setting = new AutomationSetting();
+                setting.setSettingKey(key);
+                setting.setSettingValue(String.valueOf(value));
+                setting.setCreatedAt(LocalDateTime.now());
+                setting.setUpdatedAt(LocalDateTime.now());
+                automationSettingMapper.insert(setting);
+            } else {
+                setting.setSettingValue(String.valueOf(value));
+                setting.setUpdatedAt(LocalDateTime.now());
+                automationSettingMapper.updateById(setting);
+            }
         });
         return getAll();
     }
@@ -70,8 +79,7 @@ public class AutomationController {
      */
     @GetMapping("/{key}")
     public Result<Object> getSetting(@PathVariable String key) {
-        AutomationSetting setting = automationSettingRepository.findBySettingKey(key)
-                .orElse(null);
+        AutomationSetting setting = automationSettingMapper.findBySettingKey(key);
         if (setting == null) {
             return Result.error(404, "设置不存在");
         }
@@ -88,4 +96,3 @@ public class AutomationController {
         return Result.success(value);
     }
 }
-
