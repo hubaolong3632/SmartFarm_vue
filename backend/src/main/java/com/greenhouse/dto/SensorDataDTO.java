@@ -14,23 +14,23 @@ import java.time.LocalDateTime;
 public class SensorDataDTO {
     private Long id;
     
-    @NotNull(message = "记录时间不能为空")
+    // 记录时间（MQTT 数据可能不包含，使用当前时间）
     private LocalDateTime recordTime;
     
-    @NotNull(message = "温度不能为空")
+    // 温度（可选，MQTT 数据可能不包含所有字段）
     @DecimalMin(value = "-50", message = "温度不能低于-50°C")
     @DecimalMax(value = "100", message = "温度不能高于100°C")
     private BigDecimal temperatureC;
     
-    @NotNull(message = "土壤湿度不能为空")
+    // 土壤湿度（可选）
     @DecimalMin(value = "0", message = "土壤湿度不能小于0")
     @DecimalMax(value = "100", message = "土壤湿度不能大于100")
     private BigDecimal soilMoisturePct;
     
-    @NotNull(message = "光照强度不能为空")
+    // 光照强度（可选）
     private Integer lightLux;
     
-    @NotNull(message = "是否下雨不能为空")
+    // 是否下雨（可选）
     private Boolean isRaining;
 }
 

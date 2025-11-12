@@ -1,6 +1,8 @@
 package com.greenhouse.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.greenhouse.config.EmqxConfig;
+import com.greenhouse.dto.SensorDataDTO;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -9,9 +11,13 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -25,7 +31,12 @@ public class MqttService implements MqttCallback {
     @Autowired
     private EmqxConfig emqxConfig;
     
+    @Autowired
+    private SensorDataService sensorDataService;
+    
     private MqttClient mqttClient;
+    
+    private final ObjectMapper objectMapper = new ObjectMapper();
     
     /**
      * 存储接收到的消息
@@ -121,9 +132,108 @@ public class MqttService implements MqttCallback {
             
             log.info("收到 MQTT 消息 - 主题: {}, 内容: {}, QoS: {}", topic, payload, message.getQos());
             
+            // 尝试解析为传感器数据并保存到数据库
+            try {
+                parseAndSaveSensorData(payload);
+            } catch (Exception e) {
+                log.warn("解析传感器数据失败，消息可能不是传感器数据格式: {}", e.getMessage());
+            }
+            
         } catch (Exception e) {
             log.error("处理 MQTT 消息时出错: {}", e.getMessage(), e);
         }
+    }
+    
+    /**
+     * 解析 MQTT 消息为传感器数据并保存到数据库
+     */
+    private void parseAndSaveSensorData(String payload) throws Exception {
+        // 尝试解析 JSON
+        Map<String, Object> data = objectMapper.readValue(payload, Map.class);
+        
+        // 创建传感器数据 DTO
+        SensorDataDTO dto = new SensorDataDTO();
+        
+        // 解析记录时间（如果提供，否则使用当前时间）
+        if (data.containsKey("recordTime") || data.containsKey("time")) {
+            String timeStr = (String) data.getOrDefault("recordTime", data.get("time"));
+            if (timeStr != null && !timeStr.isEmpty()) {
+                try {
+                    // 支持多种时间格式
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    dto.setRecordTime(LocalDateTime.parse(timeStr, formatter));
+                } catch (Exception e) {
+                    log.warn("解析时间失败，使用当前时间: {}", e.getMessage());
+                    dto.setRecordTime(LocalDateTime.now());
+                }
+            } else {
+                dto.setRecordTime(LocalDateTime.now());
+            }
+        } else {
+            dto.setRecordTime(LocalDateTime.now());
+        }
+        
+        // 解析温度
+        if (data.containsKey("temperatureC") || data.containsKey("temperature")) {
+            Object temp = data.getOrDefault("temperatureC", data.get("temperature"));
+            if (temp != null) {
+                dto.setTemperatureC(new BigDecimal(temp.toString()));
+            }
+        }
+        
+        // 解析土壤湿度
+        if (data.containsKey("soilMoisturePct") || data.containsKey("soilMoisture") || data.containsKey("moisture")) {
+            Object moisture = data.getOrDefault("soilMoisturePct", 
+                data.getOrDefault("soilMoisture", data.get("moisture")));
+            if (moisture != null) {
+                dto.setSoilMoisturePct(new BigDecimal(moisture.toString()));
+            }
+        }
+        
+        // 解析光照强度
+        if (data.containsKey("lightLux") || data.containsKey("light")) {
+            Object light = data.getOrDefault("lightLux", data.get("light"));
+            if (light != null) {
+                dto.setLightLux(Integer.parseInt(light.toString()));
+            }
+        }
+        
+        // 解析是否下雨
+        if (data.containsKey("isRaining") || data.containsKey("raining")) {
+            Object raining = data.getOrDefault("isRaining", data.get("raining"));
+            if (raining != null) {
+                if (raining instanceof Boolean) {
+                    dto.setIsRaining((Boolean) raining);
+                } else {
+                    dto.setIsRaining("true".equalsIgnoreCase(raining.toString()) || "1".equals(raining.toString()));
+                }
+            }
+        }
+        
+        // 验证必要字段（至少需要一个传感器数据）
+        if (dto.getTemperatureC() == null && dto.getSoilMoisturePct() == null && dto.getLightLux() == null) {
+            log.debug("消息不包含传感器数据字段，跳过保存");
+            return;
+        }
+        
+        // 为缺失的字段设置默认值（数据库要求 NOT NULL）
+        if (dto.getTemperatureC() == null) {
+            dto.setTemperatureC(BigDecimal.ZERO);
+        }
+        if (dto.getSoilMoisturePct() == null) {
+            dto.setSoilMoisturePct(BigDecimal.ZERO);
+        }
+        if (dto.getLightLux() == null) {
+            dto.setLightLux(0);
+        }
+        if (dto.getIsRaining() == null) {
+            dto.setIsRaining(false);
+        }
+        
+        // 保存到数据库
+        sensorDataService.create(dto);
+        log.info("成功保存传感器数据到数据库: 温度={}, 湿度={}, 光照={}, 下雨={}", 
+            dto.getTemperatureC(), dto.getSoilMoisturePct(), dto.getLightLux(), dto.getIsRaining());
     }
     
     /**

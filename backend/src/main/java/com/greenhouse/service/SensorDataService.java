@@ -28,12 +28,28 @@ public class SensorDataService {
      */
     @Transactional
     public SensorData create(SensorDataDTO dto) {
+        // 如果没有提供记录时间，使用当前时间
+        if (dto.getRecordTime() == null) {
+            dto.setRecordTime(LocalDateTime.now());
+        }
+        
         SensorData sensorData = new SensorData();
         sensorData.setRecordTime(dto.getRecordTime());
-        sensorData.setTemperatureC(dto.getTemperatureC());
-        sensorData.setSoilMoisturePct(dto.getSoilMoisturePct());
-        sensorData.setLightLux(dto.getLightLux());
-        sensorData.setIsRaining(dto.getIsRaining());
+        
+        // 只设置非空字段
+        if (dto.getTemperatureC() != null) {
+            sensorData.setTemperatureC(dto.getTemperatureC());
+        }
+        if (dto.getSoilMoisturePct() != null) {
+            sensorData.setSoilMoisturePct(dto.getSoilMoisturePct());
+        }
+        if (dto.getLightLux() != null) {
+            sensorData.setLightLux(dto.getLightLux());
+        }
+        if (dto.getIsRaining() != null) {
+            sensorData.setIsRaining(dto.getIsRaining());
+        }
+        
         sensorData.setCreatedAt(LocalDateTime.now());
         sensorData.setUpdatedAt(LocalDateTime.now());
         sensorDataMapper.insert(sensorData);
