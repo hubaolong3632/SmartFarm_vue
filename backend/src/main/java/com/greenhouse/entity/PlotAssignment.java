@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * 地块配方分配实体类
@@ -33,7 +33,7 @@ public class PlotAssignment {
     /**
      * 分配时间
      */
-    private LocalDateTime assignedAt;
+    private Date assignedAt;
 
     /**
      * 是否激活（0否/1是）
@@ -43,11 +43,11 @@ public class PlotAssignment {
     /**
      * 创建时间
      */
-    private LocalDateTime createdAt;
+    private Date createdAt;
 
     /**
      * 更新时间
      */
-    private LocalDateTime updatedAt;
+    private Date updatedAt;
 }
 

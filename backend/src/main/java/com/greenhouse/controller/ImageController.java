@@ -12,8 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -58,7 +58,7 @@ public class ImageController {
         }
         image.setIsAbnormal(isAbnormal);
         image.setAbnormalReason(abnormalReason);
-        image.setCreatedAt(LocalDateTime.now());
+        image.setCreatedAt(new Date());
         
         imageMapper.insert(image);
         return Result.success(image);
@@ -95,7 +95,7 @@ public class ImageController {
             }
             image.setIsAbnormal(isAbnormal);
             image.setAbnormalReason(abnormalReason);
-            image.setCreatedAt(LocalDateTime.now());
+            image.setCreatedAt(new Date());
             imageMapper.insert(image);
             return image;
         }).toList();
@@ -107,7 +107,7 @@ public class ImageController {
      */
     @GetMapping("/date")
     public Result<List<Image>> getByDate(
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date date) {
         List<Image> images = imageMapper.findByDate(date);
         return Result.success(images);
     }

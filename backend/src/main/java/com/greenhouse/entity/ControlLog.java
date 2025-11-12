@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * 控制操作日志实体类
@@ -43,5 +43,5 @@ public class ControlLog {
     /**
      * 创建时间
      */
-    private LocalDateTime createdAt;
+    private Date createdAt;
 }

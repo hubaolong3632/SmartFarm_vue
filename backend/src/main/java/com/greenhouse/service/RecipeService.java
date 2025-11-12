@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -52,8 +52,9 @@ public class RecipeService {
         recipe.setNutrientMl(dto.getNutrientMl());
         recipe.setRootingPowderMl(dto.getRootingPowderMl());
         recipe.setSpecialMl(dto.getSpecialMl());
-        recipe.setCreatedAt(LocalDateTime.now());
-        recipe.setUpdatedAt(LocalDateTime.now());
+        Date now = new Date();
+        recipe.setCreatedAt(now);
+        recipe.setUpdatedAt(now);
         
         // 确保 ID 不为空后再插入
         if (recipe.getId() == null || recipe.getId().isEmpty()) {
@@ -94,7 +95,7 @@ public class RecipeService {
         recipe.setNutrientMl(dto.getNutrientMl());
         recipe.setRootingPowderMl(dto.getRootingPowderMl());
         recipe.setSpecialMl(dto.getSpecialMl());
-        recipe.setUpdatedAt(LocalDateTime.now());
+        recipe.setUpdatedAt(new Date());
         recipeMapper.updateById(recipe);
         return recipe;
     }

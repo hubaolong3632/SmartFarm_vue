@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * 执行日志实体类
@@ -38,7 +38,7 @@ public class ExecutionLog {
     /**
      * 执行时间
      */
-    private LocalDateTime executedAt;
+    private Date executedAt;
 
     /**
      * 执行类型（manual手动/scheduled定时）
@@ -53,5 +53,5 @@ public class ExecutionLog {
     /**
      * 创建时间
      */
-    private LocalDateTime createdAt;
+    private Date createdAt;
 }

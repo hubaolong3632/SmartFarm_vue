@@ -10,8 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -63,10 +63,11 @@ public class PlotController {
         PlotAssignment assignment = new PlotAssignment();
         assignment.setPlotId(plotId);
         assignment.setRecipeId(dto.getRecipeId());
-        assignment.setAssignedAt(LocalDateTime.now());
+        Date now = new Date();
+        assignment.setAssignedAt(now);
         assignment.setIsActive(true);
-        assignment.setCreatedAt(LocalDateTime.now());
-        assignment.setUpdatedAt(LocalDateTime.now());
+        assignment.setCreatedAt(now);
+        assignment.setUpdatedAt(now);
         plotAssignmentMapper.insert(assignment);
         
         // 记录执行日志
@@ -75,8 +76,9 @@ public class PlotController {
         log.setRecipeId(dto.getRecipeId());
         log.setExecutions(dto.getExecutions() != null ? dto.getExecutions() : 1);
         log.setExecutionType("manual");
-        log.setExecutedAt(LocalDateTime.now());
-        log.setCreatedAt(LocalDateTime.now());
+        Date now2 = new Date();
+        log.setExecutedAt(now2);
+        log.setCreatedAt(now2);
         executionLogMapper.insert(log);
         
         return Result.success(assignment);
@@ -114,8 +116,9 @@ public class PlotController {
         schedule.setScheduleTime(LocalTime.parse(dto.getTimeHHmm()));
         schedule.setExecutions(dto.getExecutions() != null ? dto.getExecutions() : 1);
         schedule.setIsEnabled(true);
-        schedule.setCreatedAt(LocalDateTime.now());
-        schedule.setUpdatedAt(LocalDateTime.now());
+        Date now3 = new Date();
+        schedule.setCreatedAt(now3);
+        schedule.setUpdatedAt(now3);
         plotScheduleMapper.insert(schedule);
         
         return Result.success(schedule);

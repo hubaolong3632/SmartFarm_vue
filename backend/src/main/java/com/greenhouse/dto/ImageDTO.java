@@ -4,7 +4,7 @@ import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * 图片数据传输对象
@@ -15,7 +15,7 @@ public class ImageDTO {
     private String url;
     
     @NotNull(message = "记录时间不能为空")
-    private LocalDateTime recordTime;
+    private Date recordTime;
     
     private BigDecimal temperatureC;
     

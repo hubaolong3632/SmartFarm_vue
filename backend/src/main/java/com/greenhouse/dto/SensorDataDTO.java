@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * 传感器数据传输对象
@@ -15,7 +15,7 @@ public class SensorDataDTO {
     private Long id;
     
     // 记录时间（MQTT 数据可能不包含，使用当前时间）
-    private LocalDateTime recordTime;
+    private Date recordTime;
     
     // 温度（可选，MQTT 数据可能不包含所有字段）
     @DecimalMin(value = "-50", message = "温度不能低于-50°C")

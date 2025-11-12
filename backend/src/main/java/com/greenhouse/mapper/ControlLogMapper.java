@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -20,8 +20,8 @@ public interface ControlLogMapper extends BaseMapper<ControlLog> {
      */
     @Select("SELECT * FROM control_logs WHERE created_at >= #{startTime} AND created_at <= #{endTime} ORDER BY created_at DESC")
     List<ControlLog> findByCreatedAtBetweenOrderByCreatedAtDesc(
-            @Param("startTime") LocalDateTime startTime, 
-            @Param("endTime") LocalDateTime endTime);
+            @Param("startTime") Date startTime, 
+            @Param("endTime") Date endTime);
     
     /**
      * 查询指定类型的控制日志

@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +34,7 @@ public class ControlController {
         log.setAction("start");
         log.setStatus("success");
         log.setMessage("清理搅拌熔炉操作已启动");
-        log.setCreatedAt(LocalDateTime.now());
+        log.setCreatedAt(new Date());
         controlLogMapper.insert(log);
         
         Map<String, Object> result = new HashMap<>();
@@ -60,7 +60,7 @@ public class ControlController {
         log.setAction(actionStr);
         log.setStatus("success");
         log.setMessage("植物补光灯已" + (action == 1 ? "打开" : "关闭"));
-        log.setCreatedAt(LocalDateTime.now());
+        log.setCreatedAt(new Date());
         controlLogMapper.insert(log);
         
         Map<String, Object> result = new HashMap<>();

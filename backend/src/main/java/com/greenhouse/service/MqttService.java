@@ -13,9 +13,9 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -160,17 +160,17 @@ public class MqttService implements MqttCallback {
             if (timeStr != null && !timeStr.isEmpty()) {
                 try {
                     // 支持多种时间格式
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                    dto.setRecordTime(LocalDateTime.parse(timeStr, formatter));
+                    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    dto.setRecordTime(formatter.parse(timeStr));
                 } catch (Exception e) {
                     log.warn("解析时间失败，使用当前时间: {}", e.getMessage());
-                    dto.setRecordTime(LocalDateTime.now());
+                    dto.setRecordTime(new Date());
                 }
             } else {
-                dto.setRecordTime(LocalDateTime.now());
+                dto.setRecordTime(new Date());
             }
         } else {
-            dto.setRecordTime(LocalDateTime.now());
+            dto.setRecordTime(new Date());
         }
         
         // 解析温度

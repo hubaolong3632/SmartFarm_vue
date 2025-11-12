@@ -68,7 +68,7 @@ function pathForSeries(s) {
       <path :d="pathForSeries(s)" :stroke="s.color" fill="none" stroke-width="2" />
     </g>
     <g>
-      <rect x="padding" y="6" rx="4" ry="4" :width="width - padding * 2" height="20" fill="#fafafa" stroke="#eee" />
+      <rect :x="padding" y="6" rx="4" ry="4" :width="width - padding * 2" height="20" fill="#fafafa" stroke="#eee" />
       <g v-for="(s, idx) in series" :key="s.label" :transform="`translate(${padding + 8 + idx * 140}, 20)`">
         <rect x="-6" y="-8" width="12" height="12" :fill="s.color" />
         <text x="10" y="2" font-size="12" fill="#333">{{ s.label }}</text>

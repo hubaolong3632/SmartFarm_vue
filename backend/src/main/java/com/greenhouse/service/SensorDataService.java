@@ -9,7 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,7 +31,7 @@ public class SensorDataService {
     public SensorData create(SensorDataDTO dto) {
         // 如果没有提供记录时间，使用当前时间
         if (dto.getRecordTime() == null) {
-            dto.setRecordTime(LocalDateTime.now());
+            dto.setRecordTime(new Date());
         }
         
         SensorData sensorData = new SensorData();
@@ -50,8 +51,9 @@ public class SensorDataService {
             sensorData.setIsRaining(dto.getIsRaining());
         }
         
-        sensorData.setCreatedAt(LocalDateTime.now());
-        sensorData.setUpdatedAt(LocalDateTime.now());
+        Date now = new Date();
+        sensorData.setCreatedAt(now);
+        sensorData.setUpdatedAt(now);
         sensorDataMapper.insert(sensorData);
         return sensorData;
     }
@@ -67,15 +69,18 @@ public class SensorDataService {
      * 获取最近24小时数据
      */
     public List<SensorData> getLast24Hours() {
-        LocalDateTime endTime = LocalDateTime.now();
-        LocalDateTime startTime = endTime.minusHours(23);
+        Date endTime = new Date();
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(endTime);
+        cal.add(Calendar.HOUR_OF_DAY, -23);
+        Date startTime = cal.getTime();
         return sensorDataMapper.findLast24Hours(startTime, endTime);
     }
     
     /**
      * 获取指定时间范围的数据
      */
-    public List<SensorData> getByTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
+    public List<SensorData> getByTimeRange(Date startTime, Date endTime) {
         LambdaQueryWrapper<SensorData> wrapper = new LambdaQueryWrapper<>();
         wrapper.between(SensorData::getRecordTime, startTime, endTime)
                .orderByAsc(SensorData::getRecordTime);
@@ -87,6 +92,7 @@ public class SensorDataService {
      */
     @Transactional
     public List<SensorData> batchCreate(List<SensorDataDTO> dtos) {
+        Date now = new Date();
         List<SensorData> sensorDataList = dtos.stream().map(dto -> {
             SensorData sensorData = new SensorData();
             sensorData.setRecordTime(dto.getRecordTime());
@@ -94,8 +100,8 @@ public class SensorDataService {
             sensorData.setSoilMoisturePct(dto.getSoilMoisturePct());
             sensorData.setLightLux(dto.getLightLux());
             sensorData.setIsRaining(dto.getIsRaining());
-            sensorData.setCreatedAt(LocalDateTime.now());
-            sensorData.setUpdatedAt(LocalDateTime.now());
+            sensorData.setCreatedAt(now);
+            sensorData.setUpdatedAt(now);
             return sensorData;
         }).collect(Collectors.toList());
         

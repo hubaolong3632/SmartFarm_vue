@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * 传感器数据实体类
@@ -24,7 +24,7 @@ public class SensorData {
     /**
      * 记录时间（精确到小时）
      */
-    private LocalDateTime recordTime;
+    private Date recordTime;
 
     /**
      * 温度（摄氏度）
@@ -49,11 +49,11 @@ public class SensorData {
     /**
      * 创建时间
      */
-    private LocalDateTime createdAt;
+    private Date createdAt;
 
     /**
      * 更新时间
      */
-    private LocalDateTime updatedAt;
+    private Date updatedAt;
 }
 

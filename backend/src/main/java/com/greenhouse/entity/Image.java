@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * 图片实体类
@@ -29,7 +29,7 @@ public class Image {
     /**
      * 记录时间（对应传感器数据时间）
      */
-    private LocalDateTime recordTime;
+    private Date recordTime;
 
     /**
      * 温度（摄氏度）
@@ -64,5 +64,5 @@ public class Image {
     /**
      * 创建时间
      */
-    private LocalDateTime createdAt;
+    private Date createdAt;
 }

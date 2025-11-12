@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,12 +63,13 @@ public class AutomationController {
                 setting = new AutomationSetting();
                 setting.setSettingKey(key);
                 setting.setSettingValue(String.valueOf(value));
-                setting.setCreatedAt(LocalDateTime.now());
-                setting.setUpdatedAt(LocalDateTime.now());
+                Date now = new Date();
+                setting.setCreatedAt(now);
+                setting.setUpdatedAt(now);
                 automationSettingMapper.insert(setting);
             } else {
                 setting.setSettingValue(String.valueOf(value));
-                setting.setUpdatedAt(LocalDateTime.now());
+                setting.setUpdatedAt(new Date());
                 automationSettingMapper.updateById(setting);
             }
         });

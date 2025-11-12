@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -19,7 +19,7 @@ public interface SensorDataMapper extends BaseMapper<SensorData> {
      * 查询最近24小时的数据
      */
     @Select("SELECT * FROM sensor_data WHERE record_time >= #{startTime} AND record_time <= #{endTime} ORDER BY record_time ASC")
-    List<SensorData> findLast24Hours(@Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
+    List<SensorData> findLast24Hours(@Param("startTime") Date startTime, @Param("endTime") Date endTime);
     
     /**
      * 获取最新的一条记录
