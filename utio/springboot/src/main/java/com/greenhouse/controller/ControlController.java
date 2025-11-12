@@ -1,0 +1,75 @@
+package com.greenhouse.controller;
+
+import com.greenhouse.common.Result;
+import com.greenhouse.entity.ControlLog;
+import com.greenhouse.repository.ControlLogRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 控制操作控制器
+ */
+@RestController
+@RequestMapping("/control")
+@RequiredArgsConstructor
+public class ControlController {
+    
+    private final ControlLogRepository controlLogRepository;
+    
+    /**
+     * 清理搅拌熔炉
+     */
+    @PostMapping("/cleaning")
+    @Transactional
+    public Result<Map<String, Object>> triggerCleaning() {
+        ControlLog log = new ControlLog();
+        log.setControlType("cleaning");
+        log.setAction("start");
+        log.setStatus("success");
+        log.setMessage("清理搅拌熔炉操作已启动");
+        controlLogRepository.save(log);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", "success");
+        result.put("message", "清理搅拌熔炉操作已启动");
+        return Result.success(result);
+    }
+    
+    /**
+     * 打开/关闭植物补光灯
+     */
+    @PostMapping("/light/{action}")
+    @Transactional
+    public Result<Map<String, Object>> toggleLight(@PathVariable String action) {
+        if (!"on".equals(action) && !"off".equals(action)) {
+            return Result.error(400, "操作参数错误，应为 on 或 off");
+        }
+        
+        ControlLog log = new ControlLog();
+        log.setControlType("light");
+        log.setAction(action);
+        log.setStatus("success");
+        log.setMessage("植物补光灯已" + ("on".equals(action) ? "打开" : "关闭"));
+        controlLogRepository.save(log);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", "success");
+        result.put("lightOn", "on".equals(action));
+        result.put("message", "植物补光灯已" + ("on".equals(action) ? "打开" : "关闭"));
+        return Result.success(result);
+    }
+    
+    /**
+     * 获取控制日志
+     */
+    @GetMapping("/logs")
+    public Result<List<ControlLog>> getLogs() {
+        return Result.success(controlLogRepository.findAll());
+    }
+}
+
