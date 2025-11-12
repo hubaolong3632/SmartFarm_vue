@@ -33,8 +33,8 @@ public class ExecutionLogController {
     /**
      * 获取指定地块的执行日志
      */
-    @GetMapping("/plot/{plotId}")
-    public Result<List<ExecutionLog>> getByPlotId(@PathVariable Integer plotId) {
+    @GetMapping("/plot")
+    public Result<List<ExecutionLog>> getByPlotId(@RequestParam Integer plotId) {
         List<ExecutionLog> logs = executionLogMapper.findByPlotIdOrderByExecutedAtDesc(plotId);
         return Result.success(logs);
     }

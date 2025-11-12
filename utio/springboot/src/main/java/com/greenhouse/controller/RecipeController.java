@@ -41,8 +41,8 @@ public class RecipeController {
     /**
      * 根据ID获取配方
      */
-    @GetMapping("/{id}")
-    public Result<Recipe> getById(@PathVariable String id) {
+    @GetMapping("/detail")
+    public Result<Recipe> getById(@RequestParam String id) {
         Recipe recipe = recipeService.getById(id);
         return Result.success(recipe);
     }
@@ -50,8 +50,8 @@ public class RecipeController {
     /**
      * 更新配方
      */
-    @PutMapping("/{id}")
-    public Result<Recipe> update(@PathVariable String id, @Valid @RequestBody RecipeDTO dto) {
+    @PutMapping
+    public Result<Recipe> update(@RequestParam String id, @Valid @RequestBody RecipeDTO dto) {
         Recipe recipe = recipeService.update(id, dto);
         return Result.success(recipe);
     }
@@ -59,8 +59,8 @@ public class RecipeController {
     /**
      * 删除配方
      */
-    @DeleteMapping("/{id}")
-    public Result<Void> delete(@PathVariable String id) {
+    @DeleteMapping
+    public Result<Void> delete(@RequestParam String id) {
         recipeService.delete(id);
         return Result.success();
     }

@@ -38,17 +38,17 @@ public class AlertController {
     /**
      * 获取指定级别的报警
      */
-    @GetMapping("/level/{level}")
-    public Result<List<Alert>> getByLevel(@PathVariable String level) {
+    @GetMapping("/level")
+    public Result<List<Alert>> getByLevel(@RequestParam String level) {
         return Result.success(alertMapper.findByLevelOrderByCreatedAtDesc(level));
     }
     
     /**
      * 标记为已读
      */
-    @PutMapping("/{id}/read")
+    @PutMapping("/read")
     @Transactional
-    public Result<Void> markAsRead(@PathVariable Long id) {
+    public Result<Void> markAsRead(@RequestParam Long id) {
         alertMapper.markAsRead(id);
         return Result.success();
     }

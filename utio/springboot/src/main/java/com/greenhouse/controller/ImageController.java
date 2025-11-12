@@ -104,9 +104,9 @@ public class ImageController {
     /**
      * 根据日期查询图片
      */
-    @GetMapping("/date/{date}")
+    @GetMapping("/date")
     public Result<List<Image>> getByDate(
-            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         List<Image> images = imageMapper.findByDate(date);
         return Result.success(images);
     }
@@ -122,8 +122,8 @@ public class ImageController {
     /**
      * 获取指定地块的图片
      */
-    @GetMapping("/plot/{plotId}")
-    public Result<List<Image>> getByPlotId(@PathVariable Integer plotId) {
+    @GetMapping("/plot")
+    public Result<List<Image>> getByPlotId(@RequestParam Integer plotId) {
         return Result.success(imageMapper.findByPlotIdOrderByRecordTimeDesc(plotId));
     }
 }

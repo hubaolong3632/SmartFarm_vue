@@ -41,10 +41,10 @@ public class PlotController {
     /**
      * 分配配方到地块
      */
-    @PostMapping("/{plotId}/assign")
+    @PostMapping("/assign")
     @Transactional
     public Result<PlotAssignment> assignRecipe(
-            @PathVariable Integer plotId,
+            @RequestParam Integer plotId,
             @Valid @RequestBody PlotAssignmentDTO dto) {
         Plot plot = plotMapper.selectById(plotId);
         if (plot == null) {
@@ -84,8 +84,8 @@ public class PlotController {
     /**
      * 获取地块的当前分配
      */
-    @GetMapping("/{plotId}/assignment")
-    public Result<PlotAssignment> getAssignment(@PathVariable Integer plotId) {
+    @GetMapping("/assignment")
+    public Result<PlotAssignment> getAssignment(@RequestParam Integer plotId) {
         PlotAssignment assignment = plotAssignmentMapper.findByPlotIdAndIsActiveTrue(plotId);
         return Result.success(assignment);
     }
@@ -93,10 +93,10 @@ public class PlotController {
     /**
      * 添加定时执行计划
      */
-    @PostMapping("/{plotId}/schedules")
+    @PostMapping("/schedules")
     @Transactional
     public Result<PlotSchedule> addSchedule(
-            @PathVariable Integer plotId,
+            @RequestParam Integer plotId,
             @Valid @RequestBody PlotScheduleDTO dto) {
         Plot plot = plotMapper.selectById(plotId);
         if (plot == null) {
@@ -123,8 +123,8 @@ public class PlotController {
     /**
      * 获取地块的定时计划列表
      */
-    @GetMapping("/{plotId}/schedules")
-    public Result<List<PlotSchedule>> getSchedules(@PathVariable Integer plotId) {
+    @GetMapping("/schedules")
+    public Result<List<PlotSchedule>> getSchedules(@RequestParam Integer plotId) {
         List<PlotSchedule> schedules = plotScheduleMapper.findByPlotIdOrderByScheduleTimeAsc(plotId);
         return Result.success(schedules);
     }
@@ -132,9 +132,9 @@ public class PlotController {
     /**
      * 删除定时计划
      */
-    @DeleteMapping("/schedules/{scheduleId}")
+    @DeleteMapping("/schedules")
     @Transactional
-    public Result<Void> deleteSchedule(@PathVariable Long scheduleId) {
+    public Result<Void> deleteSchedule(@RequestParam Long scheduleId) {
         plotScheduleMapper.deleteById(scheduleId);
         return Result.success();
     }

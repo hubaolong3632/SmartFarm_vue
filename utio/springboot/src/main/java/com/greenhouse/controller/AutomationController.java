@@ -77,8 +77,8 @@ public class AutomationController {
     /**
      * 获取单个设置
      */
-    @GetMapping("/{key}")
-    public Result<Object> getSetting(@PathVariable String key) {
+    @GetMapping("/setting")
+    public Result<Object> getSetting(@RequestParam String key) {
         AutomationSetting setting = automationSettingMapper.findBySettingKey(key);
         if (setting == null) {
             return Result.error(404, "设置不存在");

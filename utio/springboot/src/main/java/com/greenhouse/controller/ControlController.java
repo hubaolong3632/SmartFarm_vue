@@ -44,26 +44,28 @@ public class ControlController {
     
     /**
      * 打开/关闭植物补光灯
+     * action: 1=打开, 0=关闭
      */
-    @PostMapping("/light/{action}")
+    @PostMapping("/light")
     @Transactional
-    public Result<Map<String, Object>> toggleLight(@PathVariable String action) {
-        if (!"on".equals(action) && !"off".equals(action)) {
-            return Result.error(400, "操作参数错误，应为 on 或 off");
+    public Result<Map<String, Object>> toggleLight(@RequestParam Integer action) {
+        if (action == null || (action != 1 && action != 0)) {
+            return Result.error(400, "操作参数错误，应为 1(打开) 或 0(关闭)");
         }
+        String actionStr = action == 1 ? "on" : "off";
         
         ControlLog log = new ControlLog();
         log.setControlType("light");
-        log.setAction(action);
+        log.setAction(actionStr);
         log.setStatus("success");
-        log.setMessage("植物补光灯已" + ("on".equals(action) ? "打开" : "关闭"));
+        log.setMessage("植物补光灯已" + (action == 1 ? "打开" : "关闭"));
         log.setCreatedAt(LocalDateTime.now());
         controlLogMapper.insert(log);
         
         Map<String, Object> result = new HashMap<>();
         result.put("status", "success");
-        result.put("lightOn", "on".equals(action));
-        result.put("message", "植物补光灯已" + ("on".equals(action) ? "打开" : "关闭"));
+        result.put("lightOn", action == 1);
+        result.put("message", "植物补光灯已" + (action == 1 ? "打开" : "关闭"));
         return Result.success(result);
     }
     
