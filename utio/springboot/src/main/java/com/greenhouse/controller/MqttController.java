@@ -17,6 +17,7 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/mqtt")
+@CrossOrigin("*")
 public class MqttController {
     
     @Autowired

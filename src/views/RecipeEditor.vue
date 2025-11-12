@@ -1,7 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useGreenhouseStore } from '../stores/greenhouse'
 const store = useGreenhouseStore()
+
+onMounted(async () => {
+  // 加载配方列表
+  await store.loadRecipes()
+})
 
 const form = ref({
   name: '',

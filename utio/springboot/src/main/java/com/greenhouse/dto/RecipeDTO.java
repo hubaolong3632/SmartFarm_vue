@@ -10,7 +10,7 @@ import jakarta.validation.constraints.NotNull;
  */
 @Data
 public class RecipeDTO {
-    @NotBlank(message = "配方ID不能为空")
+    // ID 在创建时可以为空，由后端自动生成
     private String id;
     
     @NotBlank(message = "配方名称不能为空")

@@ -18,6 +18,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/control")
 @RequiredArgsConstructor
+@CrossOrigin("*")
 public class ControlController {
     
     private final ControlLogMapper controlLogMapper;

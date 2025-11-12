@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/execution-logs")
 @RequiredArgsConstructor
+@CrossOrigin("*")
 public class ExecutionLogController {
     
     private final ExecutionLogMapper executionLogMapper;

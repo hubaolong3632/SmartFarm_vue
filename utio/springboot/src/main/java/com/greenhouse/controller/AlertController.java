@@ -15,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/alerts")
 @RequiredArgsConstructor
+@CrossOrigin("*")
 public class AlertController {
     
     private final AlertMapper alertMapper;

@@ -1,12 +1,17 @@
 <script setup>
+import { onMounted } from 'vue'
 import { useGreenhouseStore } from '../stores/greenhouse'
 import { ElMessage } from 'element-plus'
 const store = useGreenhouseStore()
 
-function saveAutomation() {
+onMounted(async () => {
+  // 加载自动化设置
+  await store.loadAutomationSettings()
+})
+
+async function saveAutomation() {
   try {
-    const value = JSON.stringify(store.automation)
-    localStorage.setItem('automation-settings', value)
+    await store.saveAutomationSettings()
     ElMessage.success('已保存自动化设置')
   } catch (e) {
     ElMessage.error('保存失败')

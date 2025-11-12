@@ -18,6 +18,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/automation")
 @RequiredArgsConstructor
+@CrossOrigin("*")
 public class AutomationController {
     
     private final AutomationSettingMapper automationSettingMapper;

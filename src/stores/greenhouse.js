@@ -1,160 +1,518 @@
+// 温室管理系统状态管理
+// 使用 Pinia 管理全局状态，并通过 API 与后端交互
+
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-
-function generateHourlySeries() {
-  const now = new Date()
-  // start from now - 23 hours, step by 1 hour -> rolling last 24 hours
-  const start = new Date(now.getTime() - 23 * 3600_000)
-  const hours = Array.from({ length: 24 }).map((_, i) => {
-    const t = new Date(start.getTime() + i * 3600_000)
-    return {
-      time: t.toISOString(),
-      temperatureC: 18 + Math.sin(i / 3) * 6 + (Math.random() - 0.5) * 1.5,
-      soilMoisturePct: 40 + Math.cos(i / 4) * 25 + (Math.random() - 0.5) * 5,
-      isRaining: Math.random() < 0.1 ? 1 : 0,
-      lightLux: Math.max(0, Math.sin(((t.getHours()) - 6) / 4) * 35000 + (Math.random() - 0.5) * 2000),
-      imageUrl: '',
-    }
-  })
-  return hours
-}
+import request from '../utils/request'
 
 export const useGreenhouseStore = defineStore('greenhouse', () => {
-  // Sensor time-series
-  const hourly = ref(generateHourlySeries())
-
-  // Alerts
-  const alerts = ref([
-    // { id: 1, level: 'warning', message: '水箱液位偏低(<20%)', time: new Date().toISOString() }
-  ])
-
-  // Recipes
-  const recipes = ref([
-    { id: 'r1', name: '基础配方', waterMl: 500, nutrientMl: 50, rootingPowderMl: 0, specialMl: 0 },
-  ])
-  const nextRecipeId = ref(2)
-
-  // Soil plot assignment (plot number -> recipe id)
+  // ========== 状态定义 ==========
+  
+  // 传感器时间序列数据（最近24小时）
+  const hourly = ref([])
+  
+  // 报警列表
+  const alerts = ref([])
+  
+  // 配方列表
+  const recipes = ref([])
+  
+  // 地块数量
   const numPlots = ref(4)
-  const plotToRecipeId = ref({ 1: 'r1' })
-
-  // Execution logs
-  const executionLogs = ref([]) // { time, plot, recipeId, executions }
-
-  // Per-plot schedules: { [plot]: [{ id, timeHHmm, recipeId, executions }] }
+  
+  // 地块到配方的映射 (plot number -> recipe id)
+  const plotToRecipeId = ref({})
+  
+  // 执行日志
+  const executionLogs = ref([])
+  
+  // 每个地块的定时计划: { [plot]: [{ id, timeHHmm, recipeId, executions }] }
   const plotSchedules = ref({})
-
-  // Controls
+  
+  // 控制状态
   const lightOn = ref(false)
   const cleaningInProgress = ref(false)
-
-  // Automation thresholds
+  
+  // 自动化设置
   const automation = ref({
-    lightLuxThreshold: 8000, // below -> turn on
-    soilMoistureLowThreshold: 35, // below -> pump
+    lightLuxThreshold: 8000,
+    soilMoistureLowThreshold: 35,
     autoLightEnabled: true,
     autoPumpEnabled: true,
   })
-
-  // Images per date
+  
+  // 图片数据
   const imagesByDate = ref({})
   const selectedDate = ref(new Date().toISOString().slice(0, 10))
-  // External images array source (if provided, gallery will use this directly)
-  // Each item suggested shape: { time: ISOString, url: string, temperatureC?: number, soilMoisturePct?: number, lightLux?: number }
   const images = ref([])
-  function setImages(list) {
-    images.value = Array.isArray(list) ? list : []
-  }
-
+  
+  // ========== 计算属性 ==========
+  
+  // 最新传感器数据
   const latest = computed(() => hourly.value[hourly.value.length - 1] || null)
-
-  function addRecipe(payload) {
-    const id = `r${nextRecipeId.value++}`
-    recipes.value.push({ id, ...payload })
-    return id
-  }
-
-  function updateRecipe(id, payload) {
-    const idx = recipes.value.findIndex(r => r.id === id)
-    if (idx >= 0) recipes.value[idx] = { ...recipes.value[idx], ...payload }
-  }
-
-  function removeRecipe(id) {
-    recipes.value = recipes.value.filter(r => r.id !== id)
-    const updated = { ...plotToRecipeId.value }
-    Object.keys(updated).forEach(k => {
-      if (updated[k] === id) {
-        delete updated[k]
+  
+  // 最近24小时执行统计（按小时聚合）
+  const executionsLast24 = computed(() => {
+    const now = new Date()
+    const start = new Date(now.getTime() - 23 * 3600_000)
+    const buckets = Array.from({ length: 24 }).map((_, i) => {
+      const t = new Date(start.getTime() + i * 3600_000)
+      return { time: t.toISOString(), count: 0 }
+    })
+    executionLogs.value.forEach(log => {
+      const t = new Date(log.executedAt || log.time).getTime()
+      if (t < start.getTime() || t > now.getTime()) return
+      const idx = Math.floor((t - start.getTime()) / 3600_000)
+      if (idx >= 0 && idx < buckets.length) {
+        buckets[idx].count += Number(log.executions || 1)
       }
     })
-    plotToRecipeId.value = updated
-  }
-
-  function logExecution(plotNumber, recipeId, executions) {
-    executionLogs.value.unshift({
-      time: new Date().toISOString(),
-      plot: plotNumber,
-      recipeId,
-      executions: Math.max(1, Number(executions || 1)),
-    })
-    // keep last 500 logs
-    executionLogs.value = executionLogs.value.slice(0, 500)
-  }
-
-  function assignRecipeToPlot(plotNumber, recipeId, executions = 1) {
-    plotToRecipeId.value = { ...plotToRecipeId.value, [plotNumber]: recipeId }
-    logExecution(plotNumber, recipeId, executions)
-    pushAlert('info', `地块${plotNumber} 分配配方后执行 ${executions} 次`)
-  }
-
-  function ensurePlotSchedule(plotNumber) {
-    if (!plotSchedules.value[plotNumber]) {
-      plotSchedules.value = { ...plotSchedules.value, [plotNumber]: [] }
+    return buckets
+  })
+  
+  // ========== 数据加载函数 ==========
+  
+  /**
+   * 加载传感器数据（最近24小时）
+   */
+  async function loadSensorData() {
+    try {
+      const data = await request.get('/sensor-data/last-24-hours')
+      if (data && Array.isArray(data)) {
+        hourly.value = data.map(item => ({
+          time: item.recordTime || item.time,
+          temperatureC: Number(item.temperatureC || 0),
+          soilMoisturePct: Number(item.soilMoisturePct || 0),
+          isRaining: item.isRaining ? 1 : 0,
+          lightLux: Number(item.lightLux || 0),
+          imageUrl: item.imageUrl || '',
+        }))
+      }
+    } catch (error) {
+      console.error('加载传感器数据失败:', error)
     }
   }
-
-  function addSchedule(plotNumber, recipeId, timeHHmm, executions = 1) {
-    ensurePlotSchedule(plotNumber)
-    const entry = {
-      id: `${plotNumber}-${Date.now()}`,
-      timeHHmm,
-      recipeId,
-      executions: Math.max(1, Number(executions || 1)),
+  
+  /**
+   * 加载最新传感器数据
+   */
+  async function loadLatestSensorData() {
+    try {
+      const data = await request.get('/sensor-data/latest')
+      if (data) {
+        const newItem = {
+          time: data.recordTime || data.time,
+          temperatureC: Number(data.temperatureC || 0),
+          soilMoisturePct: Number(data.soilMoisturePct || 0),
+          isRaining: data.isRaining ? 1 : 0,
+          lightLux: Number(data.lightLux || 0),
+          imageUrl: data.imageUrl || '',
+        }
+        // 更新或添加到 hourly
+        const existingIdx = hourly.value.findIndex(h => h.time === newItem.time)
+        if (existingIdx >= 0) {
+          hourly.value[existingIdx] = newItem
+        } else {
+          hourly.value.push(newItem)
+          // 保持最近24小时
+          if (hourly.value.length > 24) {
+            hourly.value = hourly.value.slice(-24)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('加载最新传感器数据失败:', error)
     }
-    plotSchedules.value[plotNumber] = [...plotSchedules.value[plotNumber], entry]
-    pushAlert('info', `地块${plotNumber} 添加定时 ${timeHHmm} 执行 ${entry.executions} 次`)
-    return entry.id
   }
-
-  function removeSchedule(plotNumber, entryId) {
-    ensurePlotSchedule(plotNumber)
-    plotSchedules.value[plotNumber] = plotSchedules.value[plotNumber].filter(e => e.id !== entryId)
+  
+  /**
+   * 加载所有配方
+   */
+  async function loadRecipes() {
+    try {
+      const data = await request.get('/recipes')
+      if (data && Array.isArray(data)) {
+        recipes.value = data.map(item => ({
+          id: String(item.id),
+          name: item.name,
+          waterMl: Number(item.waterMl || 0),
+          nutrientMl: Number(item.nutrientMl || 0),
+          rootingPowderMl: Number(item.rootingPowderMl || 0),
+          specialMl: Number(item.specialMl || 0),
+        }))
+      }
+    } catch (error) {
+      console.error('加载配方失败:', error)
+    }
   }
-
-  function triggerCleaning() {
+  
+  /**
+   * 加载报警列表
+   */
+  async function loadAlerts() {
+    try {
+      const data = await request.get('/alerts')
+      if (data && Array.isArray(data)) {
+        alerts.value = data.map(item => ({
+          id: String(item.id),
+          level: item.level || 'info',
+          message: item.message,
+          time: item.createdAt || item.time,
+        })).sort((a, b) => new Date(b.time) - new Date(a.time))
+      } else {
+        // 如果没有数据，保持空数组
+        alerts.value = []
+      }
+    } catch (error) {
+      console.error('加载报警失败:', error)
+      // 发生错误时保持空数组，不中断应用
+      alerts.value = []
+    }
+  }
+  
+  /**
+   * 加载执行日志
+   */
+  async function loadExecutionLogs() {
+    try {
+      const data = await request.get('/execution-logs')
+      if (data && Array.isArray(data)) {
+        executionLogs.value = data.map(item => ({
+          time: item.executedAt || item.time,
+          plot: item.plotId || item.plot,
+          recipeId: String(item.recipeId),
+          executions: Number(item.executions || 1),
+        })).sort((a, b) => new Date(b.time) - new Date(a.time))
+      } else {
+        // 如果没有数据，保持空数组
+        executionLogs.value = []
+      }
+    } catch (error) {
+      console.error('加载执行日志失败:', error)
+      // 发生错误时保持空数组，不中断应用
+      executionLogs.value = []
+    }
+  }
+  
+  /**
+   * 加载最近24小时执行统计
+   */
+  async function loadExecutionsLast24() {
+    try {
+      const data = await request.get('/execution-logs/last-24-hours')
+      if (data && Array.isArray(data)) {
+        // 转换为统一的格式
+        const now = new Date()
+        const start = new Date(now.getTime() - 23 * 3600_000)
+        const buckets = Array.from({ length: 24 }).map((_, i) => {
+          const t = new Date(start.getTime() + i * 3600_000)
+          const hourStr = t.toISOString().slice(0, 13) + ':00:00'
+          const found = data.find(d => {
+            const dTime = new Date(d.time || d.recordTime)
+            return dTime.getHours() === t.getHours() && dTime.getDate() === t.getDate()
+          })
+          return {
+            time: t.toISOString(),
+            count: found ? Number(found.count || 0) : 0
+          }
+        })
+        // 更新 executionLogs 以便 executionsLast24 计算属性能正确工作
+        executionLogs.value = data.map(item => ({
+          time: item.time || item.recordTime,
+          plot: 0,
+          recipeId: '',
+          executions: Number(item.count || 0),
+          executedAt: item.time || item.recordTime
+        }))
+      }
+    } catch (error) {
+      console.error('加载执行统计失败:', error)
+    }
+  }
+  
+  /**
+   * 加载地块分配情况
+   */
+  async function loadPlotAssignments() {
+    try {
+      const data = await request.get('/plots/assignments')
+      if (data && typeof data === 'object') {
+        const assignments = {}
+        Object.keys(data).forEach(plotNum => {
+          const assignment = data[plotNum]
+          if (assignment && assignment.recipeId) {
+            assignments[plotNum] = String(assignment.recipeId)
+          }
+        })
+        plotToRecipeId.value = assignments
+      }
+    } catch (error) {
+      console.error('加载地块分配失败:', error)
+    }
+  }
+  
+  /**
+   * 加载所有地块的定时计划
+   */
+  async function loadPlotSchedules() {
+    try {
+      const plots = Array.from({ length: numPlots.value }, (_, i) => i + 1)
+      const schedules = {}
+      for (const plot of plots) {
+        try {
+          // 需要先获取地块ID，这里假设 plot number 就是 plotId
+          const data = await request.get('/plots/schedules', { plotId: plot })
+          if (data && Array.isArray(data)) {
+            schedules[plot] = data.map(item => ({
+              id: String(item.id),
+              timeHHmm: item.scheduleTime || item.timeHHmm,
+              recipeId: String(item.recipeId),
+              executions: Number(item.executions || 1),
+            }))
+          } else {
+            schedules[plot] = []
+          }
+        } catch (error) {
+          schedules[plot] = []
+        }
+      }
+      plotSchedules.value = schedules
+    } catch (error) {
+      console.error('加载定时计划失败:', error)
+    }
+  }
+  
+  /**
+   * 加载自动化设置
+   */
+  async function loadAutomationSettings() {
+    try {
+      const data = await request.get('/automation')
+      if (data && typeof data === 'object') {
+        automation.value = {
+          lightLuxThreshold: Number(data.lightLuxThreshold || 8000),
+          soilMoistureLowThreshold: Number(data.soilMoistureLowThreshold || 35),
+          autoLightEnabled: data.autoLightEnabled !== false,
+          autoPumpEnabled: data.autoPumpEnabled !== false,
+        }
+      }
+    } catch (error) {
+      console.error('加载自动化设置失败:', error)
+    }
+  }
+  
+  /**
+   * 加载指定日期的图片
+   */
+  async function loadImagesByDate(date) {
+    try {
+      const data = await request.get('/images/date', { date })
+      if (data && Array.isArray(data)) {
+        imagesByDate.value[date] = data.map(item => ({
+          time: item.recordTime || item.time,
+          url: item.imageUrl || item.url,
+          temperatureC: Number(item.temperatureC || 0),
+          soilMoisturePct: Number(item.soilMoisturePct || 0),
+          lightLux: Number(item.lightLux || 0),
+        }))
+      }
+    } catch (error) {
+      console.error('加载图片失败:', error)
+    }
+  }
+  
+  /**
+   * 初始化加载所有数据
+   */
+  async function loadAllData() {
+    await Promise.all([
+      loadSensorData(),
+      loadRecipes(),
+      loadAlerts(),
+      loadExecutionLogs(),
+      loadPlotAssignments(),
+      loadPlotSchedules(),
+      loadAutomationSettings(),
+    ])
+  }
+  
+  // ========== 配方管理 ==========
+  
+  /**
+   * 添加配方
+   */
+  async function addRecipe(payload) {
+    try {
+      const data = await request.post('/recipes', {
+        name: payload.name,
+        waterMl: payload.waterMl || 0,
+        nutrientMl: payload.nutrientMl || 0,
+        rootingPowderMl: payload.rootingPowderMl || 0,
+        specialMl: payload.specialMl || 0,
+      })
+      if (data) {
+        await loadRecipes()
+        return String(data.id)
+      }
+    } catch (error) {
+      console.error('添加配方失败:', error)
+    }
+  }
+  
+  /**
+   * 更新配方
+   */
+  async function updateRecipe(id, payload) {
+    try {
+      const url = `/recipes?id=${id}`
+      const data = await request.put(url, {
+        name: payload.name,
+        waterMl: payload.waterMl || 0,
+        nutrientMl: payload.nutrientMl || 0,
+        rootingPowderMl: payload.rootingPowderMl || 0,
+        specialMl: payload.specialMl || 0,
+      })
+      if (data) {
+        await loadRecipes()
+      }
+    } catch (error) {
+      console.error('更新配方失败:', error)
+    }
+  }
+  
+  /**
+   * 删除配方
+   */
+  async function removeRecipe(id) {
+    try {
+      await request.delete('/recipes', { id })
+      await loadRecipes()
+      // 清除相关的地块分配
+      const updated = { ...plotToRecipeId.value }
+      Object.keys(updated).forEach(k => {
+        if (updated[k] === id) {
+          delete updated[k]
+        }
+      })
+      plotToRecipeId.value = updated
+    } catch (error) {
+      console.error('删除配方失败:', error)
+    }
+  }
+  
+  // ========== 地块管理 ==========
+  
+  /**
+   * 分配配方到地块
+   */
+  async function assignRecipeToPlot(plotNumber, recipeId, executions = 1) {
+    try {
+      // 使用 URL 参数传递 plotId
+      const url = `/plots/assign?plotId=${plotNumber}`
+      const data = await request.post(url, {
+        recipeId,
+        executions: Number(executions || 1),
+      })
+      if (data) {
+        plotToRecipeId.value = { ...plotToRecipeId.value, [plotNumber]: recipeId }
+        await loadExecutionLogs()
+        pushAlert('info', `地块${plotNumber} 分配配方后执行 ${executions} 次`)
+      }
+    } catch (error) {
+      console.error('分配配方失败:', error)
+    }
+  }
+  
+  /**
+   * 添加定时计划
+   */
+  async function addSchedule(plotNumber, recipeId, timeHHmm, executions = 1) {
+    try {
+      // 使用 URL 参数传递 plotId
+      const url = `/plots/schedules?plotId=${plotNumber}`
+      const data = await request.post(url, {
+        recipeId,
+        timeHHmm,
+        executions: Number(executions || 1),
+      })
+      if (data) {
+        await loadPlotSchedules()
+        pushAlert('info', `地块${plotNumber} 添加定时 ${timeHHmm} 执行 ${executions} 次`)
+        return String(data.id)
+      }
+    } catch (error) {
+      console.error('添加定时计划失败:', error)
+    }
+  }
+  
+  /**
+   * 删除定时计划
+   */
+  async function removeSchedule(plotNumber, entryId) {
+    try {
+      await request.delete('/plots/schedules', { scheduleId: entryId })
+      await loadPlotSchedules()
+    } catch (error) {
+      console.error('删除定时计划失败:', error)
+    }
+  }
+  
+  // ========== 控制操作 ==========
+  
+  /**
+   * 触发清理操作
+   */
+  async function triggerCleaning() {
     if (cleaningInProgress.value) return
-    cleaningInProgress.value = true
-    setTimeout(() => {
+    try {
+      cleaningInProgress.value = true
+      const data = await request.post('/control/cleaning')
+      if (data) {
+        setTimeout(() => {
+          cleaningInProgress.value = false
+        }, 1500)
+      } else {
+        cleaningInProgress.value = false
+      }
+    } catch (error) {
+      console.error('清理操作失败:', error)
       cleaningInProgress.value = false
-    }, 1500)
+    }
   }
-
-  function toggleLight(on) {
-    lightOn.value = typeof on === 'boolean' ? on : !lightOn.value
+  
+  /**
+   * 切换补光灯
+   */
+  async function toggleLight(on) {
+    try {
+      const action = typeof on === 'boolean' ? (on ? 1 : 0) : (lightOn.value ? 0 : 1)
+      const url = `/control/light?action=${action}`
+      const data = await request.post(url)
+      if (data) {
+        lightOn.value = action === 1
+      }
+    } catch (error) {
+      console.error('切换补光灯失败:', error)
+    }
   }
-
-  function pushAlert(level, message) {
-    alerts.value.unshift({
-      id: `${Date.now()}`,
-      level,
-      message,
-      time: new Date().toISOString(),
-    })
-    // keep last 100
-    alerts.value = alerts.value.slice(0, 100)
+  
+  // ========== 自动化 ==========
+  
+  /**
+   * 保存自动化设置
+   */
+  async function saveAutomationSettings() {
+    try {
+      await request.put('/automation', automation.value)
+      await loadAutomationSettings()
+    } catch (error) {
+      console.error('保存自动化设置失败:', error)
+    }
   }
-
-  // Simple automation simulation hooks
+  
+  /**
+   * 评估自动化规则（前端模拟，实际应由后端处理）
+   */
   function evaluateAutomation() {
     const last = latest.value
     if (!last) return
@@ -176,75 +534,57 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
       }
     }
   }
-
-  // For demo: periodically add a new hour sample
+  
+  // ========== 报警管理 ==========
+  
+  /**
+   * 添加报警（本地，实际应由后端推送）
+   */
+  function pushAlert(level, message) {
+    alerts.value.unshift({
+      id: `${Date.now()}`,
+      level,
+      message,
+      time: new Date().toISOString(),
+    })
+    // keep last 100
+    alerts.value = alerts.value.slice(0, 100)
+  }
+  
+  // ========== 图片管理 ==========
+  
+  /**
+   * 设置外部图片数组
+   */
+  function setImages(list) {
+    images.value = Array.isArray(list) ? list : []
+  }
+  
+  // ========== 数据轮询 ==========
+  
   let timer
   function startSimulation() {
     if (timer) return
-    timer = setInterval(() => {
-      const prev = hourly.value[hourly.value.length - 1]
-      const nextTime = new Date(new Date(prev.time).getTime() + 3600_000)
-      const sample = {
-        time: nextTime.toISOString(),
-        temperatureC: Math.max(10, Math.min(35, prev.temperatureC + (Math.random() - 0.5) * 2)),
-        soilMoisturePct: Math.max(10, Math.min(90, prev.soilMoisturePct + (Math.random() - 0.5) * 5)),
-        isRaining: Math.random() < 0.08 ? 1 : 0,
-        lightLux: Math.max(0, prev.lightLux + (Math.random() - 0.5) * 4000),
-        imageUrl: '',
-      }
-      hourly.value = [...hourly.value.slice(-23), sample]
+    // 定期刷新数据
+    timer = setInterval(async () => {
+      await loadLatestSensorData()
+      await loadExecutionLogs()
+      await loadAlerts()
       evaluateAutomation()
-    }, 4000)
+    }, 5000) // 每5秒刷新一次
   }
-
+  
   function stopSimulation() {
     if (timer) {
       clearInterval(timer)
       timer = undefined
     }
   }
-
-  // Aggregated executions per hour for last 24 hours
-  const executionsLast24 = computed(() => {
-    const now = new Date()
-    const start = new Date(now.getTime() - 23 * 3600_000)
-    // build 24 buckets
-    const buckets = Array.from({ length: 24 }).map((_, i) => {
-      const t = new Date(start.getTime() + i * 3600_000)
-      return { time: t.toISOString(), count: 0 }
-    })
-    executionLogs.value.forEach(log => {
-      const t = new Date(log.time).getTime()
-      if (t < start.getTime() || t > now.getTime()) return
-      const idx = Math.floor((t - start.getTime()) / 3600_000)
-      if (idx >= 0 && idx < buckets.length) {
-        buckets[idx].count += Number(log.executions || 1)
-      }
-    })
-    return buckets
-  })
-
-  // Seed a few demo abnormalities so the gallery can show warning styles
-  function seedDemoAbnormalities() {
-    const n = hourly.value.length
-    const targets = [n - 3, n - 8, n - 12].filter(i => i >= 0)
-    targets.forEach((i, idx) => {
-      const orig = hourly.value[i]
-      const sample = { ...orig }
-      if (idx % 2 === 0) {
-        sample.temperatureC = 41 // high temperature
-        pushAlert('warning', `温度异常：${new Date(sample.time).toLocaleString()} 温度 ${sample.temperatureC.toFixed(1)}°C`)
-      } else {
-        sample.soilMoisturePct = 20 // low moisture
-        pushAlert('warning', `湿度异常：${new Date(sample.time).toLocaleString()} 湿度 ${Math.round(sample.soilMoisturePct)}%`)
-      }
-      hourly.value[i] = sample
-    })
-  }
-  // run once on store init
-  seedDemoAbnormalities()
-
+  
+  // ========== 导出 ==========
+  
   return {
+    // 状态
     hourly,
     latest,
     alerts,
@@ -260,19 +600,46 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     images,
     executionLogs,
     executionsLast24,
+    
+    // 数据加载
+    loadAllData,
+    loadSensorData,
+    loadLatestSensorData,
+    loadRecipes,
+    loadAlerts,
+    loadExecutionLogs,
+    loadExecutionsLast24,
+    loadPlotAssignments,
+    loadPlotSchedules,
+    loadAutomationSettings,
+    loadImagesByDate,
+    
+    // 配方管理
     addRecipe,
     updateRecipe,
     removeRecipe,
+    
+    // 地块管理
     assignRecipeToPlot,
     addSchedule,
     removeSchedule,
+    
+    // 控制操作
     triggerCleaning,
     toggleLight,
+    
+    // 自动化
+    saveAutomationSettings,
+    evaluateAutomation,
+    
+    // 报警
     pushAlert,
+    
+    // 图片
+    setImages,
+    
+    // 轮询
     startSimulation,
     stopSimulation,
-    setImages,
   }
 })
-
-

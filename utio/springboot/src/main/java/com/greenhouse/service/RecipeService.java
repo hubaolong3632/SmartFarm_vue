@@ -28,12 +28,25 @@ public class RecipeService {
      */
     @Transactional
     public Recipe create(RecipeDTO dto) {
-        Recipe existing = recipeMapper.selectById(dto.getId());
-        if (existing != null) {
-            throw new IllegalArgumentException("配方ID已存在: " + dto.getId());
-        }
         Recipe recipe = new Recipe();
-        recipe.setId(dto.getId());
+        
+        // 如果前端提供了 ID，使用前端提供的；否则自动生成
+        String recipeId;
+        if (dto.getId() != null && !dto.getId().trim().isEmpty()) {
+            recipeId = dto.getId().trim();
+            Recipe existing = recipeMapper.selectById(recipeId);
+            if (existing != null) {
+                throw new IllegalArgumentException("配方ID已存在: " + recipeId);
+            }
+        } else {
+            // 自动生成 ID：使用时间戳 + 随机数
+            recipeId = "R" + System.currentTimeMillis() + (int)(Math.random() * 1000);
+        }
+        
+        // 确保 ID 被设置
+        recipe.setId(recipeId);
+        log.debug("创建配方，ID: {}", recipeId);
+        
         recipe.setName(dto.getName());
         recipe.setWaterMl(dto.getWaterMl());
         recipe.setNutrientMl(dto.getNutrientMl());
@@ -41,7 +54,14 @@ public class RecipeService {
         recipe.setSpecialMl(dto.getSpecialMl());
         recipe.setCreatedAt(LocalDateTime.now());
         recipe.setUpdatedAt(LocalDateTime.now());
+        
+        // 确保 ID 不为空后再插入
+        if (recipe.getId() == null || recipe.getId().isEmpty()) {
+            throw new IllegalArgumentException("配方ID不能为空");
+        }
+        
         recipeMapper.insert(recipe);
+        log.debug("配方创建成功，ID: {}", recipe.getId());
         return recipe;
     }
     

@@ -3,10 +3,12 @@ import { computed, ref } from 'vue'
 import { useGreenhouseStore } from '../stores/greenhouse'
 const store = useGreenhouseStore()
 
-// 选择日期后，点击“搜索”才应用
+// 选择日期后，点击"搜索"才应用
 const pendingDate = ref(store.selectedDate)
-function applySearch() {
+async function applySearch() {
   store.selectedDate = pendingDate.value
+  // 加载指定日期的图片
+  await store.loadImagesByDate(pendingDate.value)
 }
 
 const images = computed(() => {

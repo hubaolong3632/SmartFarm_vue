@@ -1,6 +1,6 @@
 <script setup>
 // 概览页面：执行日志图表 + 传感数据折线图 + 控制面板 + 当前状态/报警
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import LineChart from '../components/LineChart.vue'
 import AlertsPanel from '../components/AlertsPanel.vue'
 import ControlsPanel from '../components/ControlsPanel.vue'
@@ -8,8 +8,17 @@ import { useGreenhouseStore } from '../stores/greenhouse'
 
 const store = useGreenhouseStore()
 
-onMounted(() => {
+onMounted(async () => {
+  // 加载所有数据
+  await store.loadAllData()
+  await store.loadExecutionsLast24()
+  // 开始数据轮询
   store.startSimulation()
+})
+
+onUnmounted(() => {
+  // 停止数据轮询
+  store.stopSimulation()
 })
 </script>
 

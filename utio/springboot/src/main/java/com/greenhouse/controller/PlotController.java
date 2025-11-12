@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/plots")
 @RequiredArgsConstructor
+@CrossOrigin("*")
 public class PlotController {
     
     private final PlotMapper plotMapper;

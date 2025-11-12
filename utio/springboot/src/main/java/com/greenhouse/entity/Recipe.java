@@ -1,5 +1,6 @@
 package com.greenhouse.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -15,8 +16,9 @@ import java.time.LocalDateTime;
 public class Recipe {
     /**
      * 配方ID
+     * IdType.INPUT 表示手动输入ID（不自动生成）
      */
-    @TableId
+    @TableId(type = IdType.INPUT)
     private String id;
 
     /**

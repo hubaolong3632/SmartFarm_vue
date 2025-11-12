@@ -1,7 +1,17 @@
 <script setup>
-import { computed, ref, reactive, watchEffect } from 'vue'
+import { computed, ref, reactive, watchEffect, onMounted } from 'vue'
 import { useGreenhouseStore } from '../stores/greenhouse'
 const store = useGreenhouseStore()
+
+onMounted(async () => {
+  // 加载相关数据
+  await Promise.all([
+    store.loadRecipes(),
+    store.loadPlotAssignments(),
+    store.loadPlotSchedules(),
+    store.loadExecutionLogs(),
+  ])
+})
 
 const plots = computed(() => Array.from({ length: store.numPlots }, (_, i) => i + 1))
 const selectedRecipe = ref('')
