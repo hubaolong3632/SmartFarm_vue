@@ -2,41 +2,14 @@ spring:
   application:
     name: greenhouse-api
 ---
-#spring:
-#
-#  # 数据源配置
-#  datasource:
-#    url: jdbc:mysql://localhost:3306/greenhouse_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-#    username: root
-#    password: 123456
-#    driver-class-name: com.mysql.jdbc.Driver
-#    hikari:
-#      maximum-pool-size: 20
-#      minimum-idle: 5
-#      connection-timeout: 30000
-#      idle-timeout: 600000
-#      max-lifetime: 1800000
-#
-#  # MyBatis-Plus配置
-#  sql:
-#    init:
-#      mode: never  # 不自动执行初始化脚本
-#
-#  # Jackson配置
-#  jackson:
-#    time-zone: Asia/Shanghai
-#    date-format: yyyy-MM-dd HH:mm:ss
-#    default-property-inclusion: non_null
----
-
 spring:
 
   # 数据源配置
   datasource:
-    url: jdbc:mysql://124.223.53.96:3306/greenhouse_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: greenhouse_db
-    password: iYDrDXFMThm5yks8
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/greenhouse_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.jdbc.Driver
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -53,7 +26,34 @@ spring:
   jackson:
     time-zone: Asia/Shanghai
     date-format: yyyy-MM-dd HH:mm:ss
-    default-property-inclusion: always  # 改为 always，确保所有字段都序列化（包括 null 值）
+    default-property-inclusion: non_null
+---
+
+#spring:
+#
+#  # 数据源配置
+#  datasource:
+#    url: jdbc:mysql://124.223.53.96:3306/greenhouse_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+#    username: greenhouse_db
+#    password: iYDrDXFMThm5yks8
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    hikari:
+#      maximum-pool-size: 20
+#      minimum-idle: 5
+#      connection-timeout: 30000
+#      idle-timeout: 600000
+#      max-lifetime: 1800000
+#
+#  # MyBatis-Plus配置
+#  sql:
+#    init:
+#      mode: never  # 不自动执行初始化脚本
+#
+#  # Jackson配置
+#  jackson:
+#    time-zone: Asia/Shanghai
+#    date-format: yyyy-MM-dd HH:mm:ss
+#    default-property-inclusion: always  # 改为 always，确保所有字段都序列化（包括 null 值）
 
 ---
 # 服务器配置
@@ -65,6 +65,16 @@ server:
       charset: UTF-8
       enabled: true
       force: true
+    multipart:
+      enabled: true
+      max-file-size: 10MB  # 单个文件最大大小
+      max-request-size: 50MB  # 请求最大大小
+
+# 文件上传配置
+file:
+  upload:
+    path: ./uploads/images  # 图片上传路径（相对于项目根目录）
+    url-prefix: /api/images/files/  # 图片访问URL前缀
 
 # MyBatis-Plus配置
 mybatis-plus:
