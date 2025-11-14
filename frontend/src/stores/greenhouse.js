@@ -73,23 +73,79 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   // ========== 数据加载函数 ==========
   
   /**
-   * 加载传感器数据（最近24小时）
+   * 加载传感器数据（最新的30条记录，用于对比）
    */
   async function loadSensorData() {
     try {
-      const data = await request.get('/sensor-data/last-24-hours')
+      const data = await request.get('/sensor-data/today')
+      console.log('收到最新30条传感器数据:', data)
       if (data && Array.isArray(data)) {
-        hourly.value = data.map(item => ({
-          time: item.recordTime || item.time,
-          temperatureC: Number(item.temperatureC || 0),
-          soilMoisturePct: Number(item.soilMoisturePct || 0),
-          isRaining: item.isRaining ? 1 : 0,
-          lightLux: Number(item.lightLux || 0),
-          imageUrl: item.imageUrl || '',
-        }))
+        const processed = data
+          .map(item => {
+            // 处理时间格式：可能是字符串、Date对象或时间戳
+            let timeValue = item.recordTime || item.time
+            let dateObj = null
+            
+            if (timeValue instanceof Date) {
+              dateObj = timeValue
+              timeValue = timeValue.toISOString()
+            } else if (typeof timeValue === 'number') {
+              dateObj = new Date(timeValue)
+              timeValue = dateObj.toISOString()
+            } else if (typeof timeValue === 'string') {
+              if (!timeValue.includes('T')) {
+                // 如果是 "2024-11-14 11:30:00" 格式，转换为 Date
+                dateObj = new Date(timeValue.replace(' ', 'T'))
+                timeValue = dateObj.toISOString()
+              } else {
+                dateObj = new Date(timeValue)
+              }
+            }
+            
+            // 处理 isRaining：支持布尔值、数字、字符串
+            let isRainingValue = false
+            if (item.isRaining !== null && item.isRaining !== undefined) {
+              if (typeof item.isRaining === 'boolean') {
+                isRainingValue = item.isRaining
+              } else if (typeof item.isRaining === 'number') {
+                isRainingValue = item.isRaining !== 0
+              } else if (typeof item.isRaining === 'string') {
+                isRainingValue = item.isRaining.toLowerCase() === 'true' || item.isRaining === '1'
+              }
+            }
+            
+            return {
+              time: timeValue,
+              dateObj: dateObj,
+              temperatureC: Number(item.temperatureC || 0),
+              soilMoisturePct: Number(item.soilMoisturePct || 0),
+              isRaining: isRainingValue, // 保持为布尔值，折线图显示时转换为数字
+              lightLux: Number(item.lightLux || 0),
+              imageUrl: item.imageUrl || '',
+            }
+          })
+          // 按时间排序（确保折线图按时间顺序正确显示，后端已排序但前端再次确认）
+          .sort((a, b) => {
+            if (!a.dateObj || !b.dateObj) return 0
+            return a.dateObj - b.dateObj
+          })
+          // 移除临时的 dateObj 字段
+          .map(({ dateObj, ...rest }) => rest)
+        
+        hourly.value = processed
+        console.log('处理后的折线图数据:', hourly.value)
+        console.log('数据点数:', hourly.value.length)
+        if (hourly.value.length > 0) {
+          console.log('最早数据时间:', new Date(hourly.value[0].time).toLocaleString())
+          console.log('最新数据时间:', new Date(hourly.value[hourly.value.length - 1].time).toLocaleString())
+        }
+      } else {
+        console.warn('传感器数据格式不正确:', data)
+        hourly.value = []
       }
     } catch (error) {
       console.error('加载传感器数据失败:', error)
+      hourly.value = []
     }
   }
   
@@ -562,12 +618,19 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   
   // ========== 数据轮询 ==========
   
-  let timer
+  let sensorTimer  // 传感器数据定时器（1秒刷新）
+  let otherTimer   // 其他数据定时器（5秒刷新）
+  
   function startSimulation() {
-    if (timer) return
-    // 定期刷新数据
-    timer = setInterval(async () => {
-      await loadLatestSensorData()
+    if (sensorTimer || otherTimer) return
+    
+    // 传感器数据每1秒刷新一次（实时折线图）
+    sensorTimer = setInterval(async () => {
+      await loadSensorData() // 重新加载最新的30条数据，确保折线图数据最新
+    }, 1000) // 每1秒刷新一次
+    
+    // 执行日志和报警每5秒刷新一次
+    otherTimer = setInterval(async () => {
       await loadExecutionLogs()
       await loadAlerts()
       evaluateAutomation()
@@ -575,9 +638,13 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   }
   
   function stopSimulation() {
-    if (timer) {
-      clearInterval(timer)
-      timer = undefined
+    if (sensorTimer) {
+      clearInterval(sensorTimer)
+      sensorTimer = undefined
+    }
+    if (otherTimer) {
+      clearInterval(otherTimer)
+      otherTimer = undefined
     }
   }
   

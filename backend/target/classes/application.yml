@@ -1,13 +1,42 @@
 spring:
   application:
     name: greenhouse-api
-  
+---
+#spring:
+#
+#  # 数据源配置
+#  datasource:
+#    url: jdbc:mysql://localhost:3306/greenhouse_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+#    username: root
+#    password: 123456
+#    driver-class-name: com.mysql.jdbc.Driver
+#    hikari:
+#      maximum-pool-size: 20
+#      minimum-idle: 5
+#      connection-timeout: 30000
+#      idle-timeout: 600000
+#      max-lifetime: 1800000
+#
+#  # MyBatis-Plus配置
+#  sql:
+#    init:
+#      mode: never  # 不自动执行初始化脚本
+#
+#  # Jackson配置
+#  jackson:
+#    time-zone: Asia/Shanghai
+#    date-format: yyyy-MM-dd HH:mm:ss
+#    default-property-inclusion: non_null
+---
+
+spring:
+
   # 数据源配置
   datasource:
-    url: jdbc:mysql://localhost:3306/greenhouse_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: root
-    password: 123456
-    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://124.223.53.96:3306/greenhouse_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: greenhouse_db
+    password: iYDrDXFMThm5yks8
+    driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -26,6 +55,7 @@ spring:
     date-format: yyyy-MM-dd HH:mm:ss
     default-property-inclusion: non_null
 
+---
 # 服务器配置
 server:
   port: 11000
@@ -40,7 +70,7 @@ server:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true  # 开启驼峰命名转换
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 打印SQL日志
+    # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 打印SQL日志（已关闭）
   global-config:
     db-config:
       id-type: auto  # 主键自增
@@ -64,8 +94,10 @@ logging:
   level:
     root: INFO
     com.greenhouse: DEBUG
+    com.greenhouse.mapper: WARN  # 关闭Mapper的SQL查询日志
     org.springframework.web: INFO
-    com.baomidou.mybatisplus: DEBUG
+    com.baomidou.mybatisplus: WARN  # 关闭MyBatis-Plus的详细日志
+    org.apache.ibatis: WARN  # 关闭MyBatis的SQL日志
     org.eclipse.paho: INFO  # MQTT 客户端日志
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

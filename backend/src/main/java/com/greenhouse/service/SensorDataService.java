@@ -29,13 +29,13 @@ public class SensorDataService {
      */
     @Transactional
     public SensorData create(SensorDataDTO dto) {
-        // 如果没有提供记录时间，使用当前时间
-        if (dto.getRecordTime() == null) {
-            dto.setRecordTime(new Date());
-        }
+        // 记录时间统一使用后端当前系统时间，忽略前端传递的时间
+        // 这样可以确保时间准确，不受设备时间影响
+        Date now = new Date();
+        dto.setRecordTime(now);
         
         SensorData sensorData = new SensorData();
-        sensorData.setRecordTime(dto.getRecordTime());
+        sensorData.setRecordTime(now);
         
         // 只设置非空字段
         if (dto.getTemperatureC() != null) {
@@ -51,7 +51,7 @@ public class SensorDataService {
             sensorData.setIsRaining(dto.getIsRaining());
         }
         
-        Date now = new Date();
+        // 创建时间和更新时间使用当前时间
         sensorData.setCreatedAt(now);
         sensorData.setUpdatedAt(now);
         sensorDataMapper.insert(sensorData);
@@ -78,6 +78,17 @@ public class SensorDataService {
     }
     
     /**
+     * 获取最新的30条记录（用于对比）
+     */
+    public List<SensorData> getToday() {
+        // 获取最新的30条记录，按时间倒序排列
+        List<SensorData> records = sensorDataMapper.findLatestRecords(30);
+        // 反转列表，使其按时间正序排列（从早到晚），便于折线图显示
+        java.util.Collections.reverse(records);
+        return records;
+    }
+    
+    /**
      * 获取指定时间范围的数据
      */
     public List<SensorData> getByTimeRange(Date startTime, Date endTime) {
@@ -95,7 +106,8 @@ public class SensorDataService {
         Date now = new Date();
         List<SensorData> sensorDataList = dtos.stream().map(dto -> {
             SensorData sensorData = new SensorData();
-            sensorData.setRecordTime(dto.getRecordTime());
+            // 记录时间统一使用后端当前系统时间，忽略前端传递的时间
+            sensorData.setRecordTime(now);
             sensorData.setTemperatureC(dto.getTemperatureC());
             sensorData.setSoilMoisturePct(dto.getSoilMoisturePct());
             sensorData.setLightLux(dto.getLightLux());

@@ -2,6 +2,7 @@
 // 概览页面：执行日志图表 + 传感数据折线图 + 控制面板 + 当前状态/报警
 import { onMounted, onUnmounted } from 'vue'
 import LineChart from '../components/LineChart.vue'
+import EChartLine from '../components/EChartLine.vue'
 import AlertsPanel from '../components/AlertsPanel.vue'
 import ControlsPanel from '../components/ControlsPanel.vue'
 import { useGreenhouseStore } from '../stores/greenhouse'
@@ -28,29 +29,71 @@ onUnmounted(() => {
       <!-- 执行日志图表（最近24小时，每小时执行次数） -->
       <el-card shadow="never" style="margin-bottom:16px;">
         <template #header>执行日志（次数/小时，最近24小时）</template>
-        <LineChart
-          :points="store.executionsLast24"
-          :series="[
-            { label: '执行次数', color: '#6366f1', accessor: (p) => p.count },
-          ]"
-          :width="800"
-          :height="220"
+        <EChartLine
+          title="执行次数"
+          :data="store.executionsLast24"
+          data-key="count"
+          unit=" 次"
+          color="#6366f1"
+          height="220px"
         />
       </el-card>
-      <!-- 小时检测数据折线图（温度/湿度/光照/降雨） -->
-      <el-card shadow="never">
-        <template #header>小时检测折线图</template>
-        <LineChart
-          :points="store.hourly"
-          :series="[
-            { label: '温度(°C)', color: '#ef4444', accessor: (p) => p.temperatureC },
-            { label: '土壤湿度(%)', color: '#3b82f6', accessor: (p) => p.soilMoisturePct },
-            { label: '光照(lux)', color: '#10b981', accessor: (p) => p.lightLux },
-            { label: '是否下雨(0/1)', color: '#f59e0b', accessor: (p) => p.isRaining },
-          ]"
-          :width="800"
-          :height="320"
-        />
+      <!-- 实时传感器数据折线图（使用ECharts，每个数据项独立显示） -->
+      <el-card shadow="never" style="margin-bottom: 16px;">
+        <template #header>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>实时传感器数据折线图（最新30条记录对比）</span>
+            <span style="font-size: 12px; color: #999;">数据点数: {{ store.hourly.length }}/30</span>
+          </div>
+        </template>
+        <el-row :gutter="16">
+          <!-- 温度图表 -->
+          <el-col :span="12">
+            <EChartLine
+              title="温度"
+              :data="store.hourly"
+              data-key="temperatureC"
+              unit="°C"
+              color="#ef4444"
+              height="250px"
+            />
+          </el-col>
+          <!-- 土壤湿度图表 -->
+          <el-col :span="12">
+            <EChartLine
+              title="土壤湿度"
+              :data="store.hourly"
+              data-key="soilMoisturePct"
+              unit="%"
+              color="#3b82f6"
+              height="250px"
+            />
+          </el-col>
+        </el-row>
+        <el-row :gutter="16" style="margin-top: 16px;">
+          <!-- 光照图表 -->
+          <el-col :span="12">
+            <EChartLine
+              title="光照强度"
+              :data="store.hourly"
+              data-key="lightLux"
+              unit=" lux"
+              color="#10b981"
+              height="250px"
+            />
+          </el-col>
+          <!-- 是否下雨图表 -->
+          <el-col :span="12">
+            <EChartLine
+              title="是否下雨"
+              :data="store.hourly"
+              data-key="isRaining"
+              unit=""
+              color="#f59e0b"
+              height="250px"
+            />
+          </el-col>
+        </el-row>
       </el-card>
       <!-- 控制面板（手动清理/补光灯开关） -->
       <el-card shadow="never" style="margin-top:16px;">

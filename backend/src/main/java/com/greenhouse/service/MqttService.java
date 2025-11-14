@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -154,24 +153,9 @@ public class MqttService implements MqttCallback {
         // 创建传感器数据 DTO
         SensorDataDTO dto = new SensorDataDTO();
         
-        // 解析记录时间（如果提供，否则使用当前时间）
-        if (data.containsKey("recordTime") || data.containsKey("time")) {
-            String timeStr = (String) data.getOrDefault("recordTime", data.get("time"));
-            if (timeStr != null && !timeStr.isEmpty()) {
-                try {
-                    // 支持多种时间格式
-                    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    dto.setRecordTime(formatter.parse(timeStr));
-                } catch (Exception e) {
-                    log.warn("解析时间失败，使用当前时间: {}", e.getMessage());
-                    dto.setRecordTime(new Date());
-                }
-            } else {
-                dto.setRecordTime(new Date());
-            }
-        } else {
-            dto.setRecordTime(new Date());
-        }
+        // 记录时间统一使用后端当前系统时间，忽略前端/MQTT传递的时间
+        // 这样可以确保时间准确，不受设备时间影响
+        dto.setRecordTime(new Date());
         
         // 解析温度
         if (data.containsKey("temperatureC") || data.containsKey("temperature")) {
@@ -202,9 +186,17 @@ public class MqttService implements MqttCallback {
         if (data.containsKey("isRaining") || data.containsKey("raining")) {
             Object raining = data.getOrDefault("isRaining", data.get("raining"));
             if (raining != null) {
+                // 处理布尔值、字符串和数字类型
                 if (raining instanceof Boolean) {
                     dto.setIsRaining((Boolean) raining);
+                } else if (raining instanceof String) {
+                    String str = ((String) raining).trim();
+                    dto.setIsRaining("true".equalsIgnoreCase(str) || "1".equals(str) || "yes".equalsIgnoreCase(str));
+                } else if (raining instanceof Number) {
+                    // 数字类型：1 或非0为true，0为false
+                    dto.setIsRaining(((Number) raining).intValue() != 0);
                 } else {
+                    // 其他类型转换为字符串判断
                     dto.setIsRaining("true".equalsIgnoreCase(raining.toString()) || "1".equals(raining.toString()));
                 }
             }

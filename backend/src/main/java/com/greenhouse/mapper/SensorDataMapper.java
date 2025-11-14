@@ -26,5 +26,11 @@ public interface SensorDataMapper extends BaseMapper<SensorData> {
      */
     @Select("SELECT * FROM sensor_data ORDER BY record_time DESC LIMIT 1")
     SensorData findLatest();
+    
+    /**
+     * 获取最新的N条记录（按时间倒序）
+     */
+    @Select("SELECT * FROM sensor_data ORDER BY record_time DESC LIMIT #{limit}")
+    List<SensorData> findLatestRecords(@Param("limit") int limit);
 }
 

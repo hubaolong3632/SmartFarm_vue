@@ -61,6 +61,15 @@ public class SensorDataController {
     }
     
     /**
+     * 获取今天的数据（从今天0:00:00到23:59:59）
+     */
+    @GetMapping("/today")
+    public Result<List<SensorData>> getToday() {
+        List<SensorData> sensorDataList = sensorDataService.getToday();
+        return Result.success(sensorDataList);
+    }
+    
+    /**
      * 获取指定时间范围的数据
      */
     @GetMapping("/range")
