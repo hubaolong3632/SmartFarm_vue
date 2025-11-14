@@ -393,8 +393,9 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
       const data = await request.get('/images/date', { date })
       if (data && Array.isArray(data)) {
         imagesByDate.value[date] = data.map(item => ({
+          id: item.id,
           time: item.recordTime || item.time,
-          url: item.imageUrl || item.url,
+          url: formatImageUrl(item.imageUrl || item.url),
           temperatureC: Number(item.temperatureC || 0),
           humidityPct: Number(item.humidityPct || 0),
           soilMoisturePct: Number(item.soilMoisturePct || 0),
@@ -402,11 +403,97 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
           isRaining: item.isRaining ? true : false,
           oxygenPct: Number(item.oxygenPct || 0),
           co2Ppm: Number(item.co2Ppm || 0),
+          plotId: item.plotId,
+          isAbnormal: item.isAbnormal || false,
+          abnormalReason: item.abnormalReason,
         }))
+      } else {
+        imagesByDate.value[date] = []
       }
     } catch (error) {
       console.error('加载图片失败:', error)
+      imagesByDate.value[date] = []
     }
+  }
+  
+  /**
+   * 加载所有图片
+   */
+  async function loadAllImages() {
+    try {
+      const data = await request.get('/images')
+      if (data && Array.isArray(data)) {
+        images.value = data.map(item => ({
+          id: item.id,
+          time: item.recordTime || item.time,
+          url: formatImageUrl(item.imageUrl || item.url),
+          temperatureC: Number(item.temperatureC || 0),
+          humidityPct: Number(item.humidityPct || 0),
+          soilMoisturePct: Number(item.soilMoisturePct || 0),
+          lightLux: Number(item.lightLux || 0),
+          isRaining: item.isRaining ? true : false,
+          oxygenPct: Number(item.oxygenPct || 0),
+          co2Ppm: Number(item.co2Ppm || 0),
+          plotId: item.plotId,
+          isAbnormal: item.isAbnormal || false,
+          abnormalReason: item.abnormalReason,
+        }))
+      } else {
+        images.value = []
+      }
+    } catch (error) {
+      console.error('加载所有图片失败:', error)
+      images.value = []
+    }
+  }
+  
+  /**
+   * 加载异常图片
+   */
+  async function loadAbnormalImages() {
+    try {
+      const data = await request.get('/images/abnormal')
+      if (data && Array.isArray(data)) {
+        images.value = data.map(item => ({
+          id: item.id,
+          time: item.recordTime || item.time,
+          url: formatImageUrl(item.imageUrl || item.url),
+          temperatureC: Number(item.temperatureC || 0),
+          humidityPct: Number(item.humidityPct || 0),
+          soilMoisturePct: Number(item.soilMoisturePct || 0),
+          lightLux: Number(item.lightLux || 0),
+          isRaining: item.isRaining ? true : false,
+          oxygenPct: Number(item.oxygenPct || 0),
+          co2Ppm: Number(item.co2Ppm || 0),
+          plotId: item.plotId,
+          isAbnormal: item.isAbnormal || false,
+          abnormalReason: item.abnormalReason,
+        }))
+      } else {
+        images.value = []
+      }
+    } catch (error) {
+      console.error('加载异常图片失败:', error)
+      images.value = []
+    }
+  }
+  
+  /**
+   * 格式化图片URL
+   * 如果是相对路径，添加API基础URL
+   */
+  function formatImageUrl(url) {
+    if (!url) return ''
+    // 如果已经是完整URL，直接返回
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url
+    }
+    // 如果是相对路径（以/api开头），添加后端基础URL
+    if (url.startsWith('/api/')) {
+      return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:11000'}${url}`
+    }
+    // 如果是其他相对路径，也添加基础URL
+    return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:11000'}/api${url.startsWith('/') ? '' : '/'}${url}`
   }
   
   /**

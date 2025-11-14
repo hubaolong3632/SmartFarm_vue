@@ -65,6 +65,16 @@ server:
       charset: UTF-8
       enabled: true
       force: true
+    multipart:
+      enabled: true
+      max-file-size: 10MB  # 单个文件最大大小
+      max-request-size: 50MB  # 请求最大大小
+
+# 文件上传配置
+file:
+  upload:
+    path: ./uploads/images  # 图片上传路径（相对于项目根目录）
+    url-prefix: /api/images/files/  # 图片访问URL前缀
 
 # MyBatis-Plus配置
 mybatis-plus:
