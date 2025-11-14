@@ -50,7 +50,17 @@ const images = computed(() => {
 })
 
 function isAbnormal(img) {
-  // 只有温度高于舒适温度（高阈值）或土壤湿度低于10%才标记为异常
+  // 如果数据库已标记为异常，直接使用
+  if (img.isAbnormal) {
+    return { 
+      flag: true,
+      tempAbnormal: false, 
+      moistureAbnormal: false,
+      reason: img.abnormalReason
+    }
+  }
+  
+  // 否则根据阈值判断
   const tempHigh = store.automation.temperatureHighThreshold ?? 35
   const tempAbnormal = (img.temperatureC ?? 0) > tempHigh
   
@@ -60,8 +70,16 @@ function isAbnormal(img) {
   return { 
     flag: tempAbnormal || moistureAbnormal,
     tempAbnormal, 
-    moistureAbnormal
+    moistureAbnormal,
+    reason: tempAbnormal && moistureAbnormal ? '温度异常, 土壤湿度异常' : 
+            tempAbnormal ? '温度异常' : 
+            moistureAbnormal ? '土壤湿度异常' : null
   }
+}
+
+function handleImageError(event) {
+  // 图片加载失败时的处理
+  event.target.src = 'https://placehold.co/320x200?text=图片加载失败'
 }
 </script>
 

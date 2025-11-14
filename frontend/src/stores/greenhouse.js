@@ -878,6 +878,8 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     imagesByDate,
     selectedDate,
     images,
+    loadAllImages,
+    loadAbnormalImages,
     executionLogs,
     executionsLast24,
     

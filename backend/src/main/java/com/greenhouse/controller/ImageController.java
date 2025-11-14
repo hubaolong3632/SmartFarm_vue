@@ -349,11 +349,23 @@ public class ImageController {
     @GetMapping
     public Result<List<Image>> getAllImages(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
-            @RequestParam(value = "size", defaultValue = "20") Integer size) {
-        // 简单实现：获取所有图片，按创建时间倒序
+            @RequestParam(value = "size", defaultValue = "100") Integer size) {
+        // 获取所有图片，按记录时间倒序
         List<Image> images = imageMapper.selectList(null);
-        // 可以在这里添加分页逻辑
-        return Result.success(images);
+        // 按记录时间倒序排序
+        images.sort((a, b) -> {
+            if (a.getRecordTime() == null || b.getRecordTime() == null) {
+                return 0;
+            }
+            return b.getRecordTime().compareTo(a.getRecordTime());
+        });
+        // 简单分页（可以后续优化为数据库分页）
+        int start = (page - 1) * size;
+        int end = Math.min(start + size, images.size());
+        if (start >= images.size()) {
+            return Result.success(new java.util.ArrayList<>());
+        }
+        return Result.success(images.subList(start, end));
     }
     
     /**
