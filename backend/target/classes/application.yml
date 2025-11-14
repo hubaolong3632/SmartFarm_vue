@@ -53,7 +53,7 @@ spring:
   jackson:
     time-zone: Asia/Shanghai
     date-format: yyyy-MM-dd HH:mm:ss
-    default-property-inclusion: non_null
+    default-property-inclusion: always  # 改为 always，确保所有字段都序列化（包括 null 值）
 
 ---
 # 服务器配置

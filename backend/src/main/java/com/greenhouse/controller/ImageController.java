@@ -38,26 +38,32 @@ public class ImageController {
         image.setImageUrl(dto.getUrl());
         image.setRecordTime(dto.getRecordTime());
         image.setTemperatureC(dto.getTemperatureC());
+        image.setHumidityPct(dto.getHumidityPct());
         image.setSoilMoisturePct(dto.getSoilMoisturePct());
         image.setLightLux(dto.getLightLux());
+        image.setIsRaining(dto.getIsRaining());
+        image.setOxygenPct(dto.getOxygenPct());
+        image.setCo2Ppm(dto.getCo2Ppm());
         image.setPlotId(dto.getPlotId());
         
-        // 判断是否异常
+        // 判断是否异常：只有温度高于舒适温度（35°C）或土壤湿度低于10%才标记为异常
         boolean isAbnormal = false;
-        String abnormalReason = null;
+        StringBuilder abnormalReason = new StringBuilder();
+        // 温度高于舒适温度（高阈值，默认35°C）
         if (dto.getTemperatureC() != null && 
-            (dto.getTemperatureC().compareTo(new BigDecimal("10")) < 0 || 
-             dto.getTemperatureC().compareTo(new BigDecimal("35")) > 0)) {
+            dto.getTemperatureC().compareTo(new BigDecimal("35")) > 0) {
             isAbnormal = true;
-            abnormalReason = "温度异常";
+            abnormalReason.append("温度异常");
         }
+        // 土壤湿度低于10%
         if (dto.getSoilMoisturePct() != null && 
-            dto.getSoilMoisturePct().compareTo(new BigDecimal("35")) < 0) {
+            dto.getSoilMoisturePct().compareTo(new BigDecimal("10")) < 0) {
             isAbnormal = true;
-            abnormalReason = abnormalReason == null ? "土壤湿度异常" : abnormalReason + ", 土壤湿度异常";
+            if (abnormalReason.length() > 0) abnormalReason.append(", ");
+            abnormalReason.append("土壤湿度异常");
         }
         image.setIsAbnormal(isAbnormal);
-        image.setAbnormalReason(abnormalReason);
+        image.setAbnormalReason(abnormalReason.length() > 0 ? abnormalReason.toString() : null);
         image.setCreatedAt(new Date());
         
         imageMapper.insert(image);
@@ -75,26 +81,32 @@ public class ImageController {
             image.setImageUrl(dto.getUrl());
             image.setRecordTime(dto.getRecordTime());
             image.setTemperatureC(dto.getTemperatureC());
+            image.setHumidityPct(dto.getHumidityPct());
             image.setSoilMoisturePct(dto.getSoilMoisturePct());
             image.setLightLux(dto.getLightLux());
+            image.setIsRaining(dto.getIsRaining());
+            image.setOxygenPct(dto.getOxygenPct());
+            image.setCo2Ppm(dto.getCo2Ppm());
             image.setPlotId(dto.getPlotId());
             
-            // 判断是否异常
+            // 判断是否异常：只有温度高于舒适温度（35°C）或土壤湿度低于10%才标记为异常
             boolean isAbnormal = false;
-            String abnormalReason = null;
+            StringBuilder abnormalReason = new StringBuilder();
+            // 温度高于舒适温度（高阈值，默认35°C）
             if (dto.getTemperatureC() != null && 
-                (dto.getTemperatureC().compareTo(new BigDecimal("10")) < 0 || 
-                 dto.getTemperatureC().compareTo(new BigDecimal("35")) > 0)) {
+                dto.getTemperatureC().compareTo(new BigDecimal("35")) > 0) {
                 isAbnormal = true;
-                abnormalReason = "温度异常";
+                abnormalReason.append("温度异常");
             }
+            // 土壤湿度低于10%
             if (dto.getSoilMoisturePct() != null && 
-                dto.getSoilMoisturePct().compareTo(new BigDecimal("35")) < 0) {
+                dto.getSoilMoisturePct().compareTo(new BigDecimal("10")) < 0) {
                 isAbnormal = true;
-                abnormalReason = abnormalReason == null ? "土壤湿度异常" : abnormalReason + ", 土壤湿度异常";
+                if (abnormalReason.length() > 0) abnormalReason.append(", ");
+                abnormalReason.append("土壤湿度异常");
             }
             image.setIsAbnormal(isAbnormal);
-            image.setAbnormalReason(abnormalReason);
+            image.setAbnormalReason(abnormalReason.length() > 0 ? abnormalReason.toString() : null);
             image.setCreatedAt(new Date());
             imageMapper.insert(image);
             return image;

@@ -6,6 +6,7 @@ import com.greenhouse.entity.SensorData;
 import com.greenhouse.service.SensorDataService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +16,7 @@ import java.util.List;
 /**
  * 传感器数据控制器
  */
+@Slf4j
 @RestController
 @RequestMapping("/sensor-data")
 @RequiredArgsConstructor
@@ -61,11 +63,12 @@ public class SensorDataController {
     }
     
     /**
-     * 获取今天的数据（从今天0:00:00到23:59:59）
+     * 获取今天的数据（最新的30条记录）
      */
     @GetMapping("/today")
     public Result<List<SensorData>> getToday() {
         List<SensorData> sensorDataList = sensorDataService.getToday();
+        log.debug("API /sensor-data/today 返回 {} 条记录", sensorDataList.size());
         return Result.success(sensorDataList);
     }
     

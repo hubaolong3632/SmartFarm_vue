@@ -37,6 +37,12 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   const automation = ref({
     lightLuxThreshold: 8000,
     soilMoistureLowThreshold: 35,
+    temperatureHighThreshold: 35,
+    temperatureLowThreshold: 10,
+    humidityHighThreshold: 80,
+    humidityLowThreshold: 30,
+    oxygenLowThreshold: 18,
+    co2HighThreshold: 1000,
     autoLightEnabled: true,
     autoPumpEnabled: true,
   })
@@ -118,9 +124,12 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
               time: timeValue,
               dateObj: dateObj,
               temperatureC: Number(item.temperatureC || 0),
+              humidityPct: Number(item.humidityPct || 0),
               soilMoisturePct: Number(item.soilMoisturePct || 0),
               isRaining: isRainingValue, // 保持为布尔值，折线图显示时转换为数字
               lightLux: Number(item.lightLux || 0),
+              oxygenPct: Number(item.oxygenPct || 0),
+              co2Ppm: Number(item.co2Ppm || 0),
               imageUrl: item.imageUrl || '',
             }
           })
@@ -319,12 +328,25 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
           // 需要先获取地块ID，这里假设 plot number 就是 plotId
           const data = await request.get('/plots/schedules', { plotId: plot })
           if (data && Array.isArray(data)) {
-            schedules[plot] = data.map(item => ({
-              id: String(item.id),
-              timeHHmm: item.scheduleTime || item.timeHHmm,
-              recipeId: String(item.recipeId),
-              executions: Number(item.executions || 1),
-            }))
+            schedules[plot] = data.map(item => {
+              // 处理时间格式：scheduleTime 可能是 LocalTime 格式 (HH:mm:ss) 或字符串
+              let timeHHmm = item.timeHHmm || item.scheduleTime
+              if (timeHHmm && typeof timeHHmm === 'string' && timeHHmm.includes(':')) {
+                // 如果是 "HH:mm:ss" 格式，只取前5个字符 "HH:mm"
+                if (timeHHmm.length > 5) {
+                  timeHHmm = timeHHmm.substring(0, 5)
+                }
+              }
+              return {
+                id: String(item.id),
+                timeHHmm: timeHHmm || '',
+                recipeId: String(item.recipeId),
+                executions: Number(item.executions || 1),
+                scheduleType: item.scheduleType || 'daily',
+                dayOfWeek: item.dayOfWeek !== null && item.dayOfWeek !== undefined ? item.dayOfWeek : null,
+                scheduleDatetime: item.scheduleDatetime || null,
+              }
+            })
           } else {
             schedules[plot] = []
           }
@@ -348,6 +370,12 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
         automation.value = {
           lightLuxThreshold: Number(data.lightLuxThreshold || 8000),
           soilMoistureLowThreshold: Number(data.soilMoistureLowThreshold || 35),
+          temperatureHighThreshold: Number(data.temperatureHighThreshold || 35),
+          temperatureLowThreshold: Number(data.temperatureLowThreshold || 10),
+          humidityHighThreshold: Number(data.humidityHighThreshold || 80),
+          humidityLowThreshold: Number(data.humidityLowThreshold || 30),
+          oxygenLowThreshold: Number(data.oxygenLowThreshold || 18),
+          co2HighThreshold: Number(data.co2HighThreshold || 1000),
           autoLightEnabled: data.autoLightEnabled !== false,
           autoPumpEnabled: data.autoPumpEnabled !== false,
         }
@@ -368,8 +396,12 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
           time: item.recordTime || item.time,
           url: item.imageUrl || item.url,
           temperatureC: Number(item.temperatureC || 0),
+          humidityPct: Number(item.humidityPct || 0),
           soilMoisturePct: Number(item.soilMoisturePct || 0),
           lightLux: Number(item.lightLux || 0),
+          isRaining: item.isRaining ? true : false,
+          oxygenPct: Number(item.oxygenPct || 0),
+          co2Ppm: Number(item.co2Ppm || 0),
         }))
       }
     } catch (error) {
@@ -482,22 +514,88 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   /**
    * 添加定时计划
    */
-  async function addSchedule(plotNumber, recipeId, timeHHmm, executions = 1) {
+  async function addSchedule(plotNumber, recipeId, timeHHmm, executions = 1, scheduleType = 'daily', dayOfWeek = null, scheduleDatetime = null) {
     try {
       // 使用 URL 参数传递 plotId
       const url = `/plots/schedules?plotId=${plotNumber}`
-      const data = await request.post(url, {
+      const payload = {
         recipeId,
-        timeHHmm,
+        timeHHmm: timeHHmm || null,
         executions: Number(executions || 1),
-      })
+        scheduleType: scheduleType || 'daily',
+        dayOfWeek: dayOfWeek !== null ? dayOfWeek : null,
+        scheduleDatetime: scheduleDatetime || null,
+      }
+      const data = await request.post(url, payload)
       if (data) {
         await loadPlotSchedules()
-        pushAlert('info', `地块${plotNumber} 添加定时 ${timeHHmm} 执行 ${executions} 次`)
+        let message = `地块${plotNumber} 添加定时任务`
+        if (scheduleType === 'daily') {
+          message += `（每天 ${timeHHmm}）`
+        } else if (scheduleType === 'weekly') {
+          const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+          message += `（每周${weekDays[dayOfWeek] || '?'} ${timeHHmm}）`
+        } else if (scheduleType === 'monthly') {
+          if (scheduleDatetime) {
+            message += `（每月 ${new Date(scheduleDatetime).toLocaleDateString('zh-CN')} ${new Date(scheduleDatetime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}）`
+          } else {
+            message += `（每月同一天 ${timeHHmm}）`
+          }
+        }
+        message += ` 执行 ${executions} 次`
+        pushAlert('info', message)
         return String(data.id)
       }
     } catch (error) {
       console.error('添加定时计划失败:', error)
+    }
+  }
+  
+  /**
+   * 立即执行定时计划
+   */
+  async function executeSchedule(scheduleId) {
+    try {
+      const data = await request.post(`/plots/schedules/execute?scheduleId=${scheduleId}`)
+      await loadExecutionLogs()
+      pushAlert('success', data || '执行成功，已发送MQTT消息')
+      return true
+    } catch (error) {
+      console.error('立即执行定时计划失败:', error)
+      pushAlert('error', '执行失败: ' + (error.message || '未知错误'))
+      return false
+    }
+  }
+  
+  /**
+   * 立即执行配方分配
+   */
+  async function executeAssignment(plotNumber, executions = 1) {
+    try {
+      const data = await request.post(`/plots/assign/execute?plotId=${plotNumber}&executions=${executions}`)
+      await loadExecutionLogs()
+      pushAlert('success', data || `地块${plotNumber}执行成功，已发送MQTT消息`)
+      return true
+    } catch (error) {
+      console.error('立即执行配方分配失败:', error)
+      pushAlert('error', '执行失败: ' + (error.message || '未知错误'))
+      return false
+    }
+  }
+  
+  /**
+   * 根据执行日志立即执行（重新执行）
+   */
+  async function executeFromLog(plotNumber, recipeId, executions = 1) {
+    try {
+      const data = await request.post(`/plots/assign/execute?plotId=${plotNumber}&executions=${executions}`)
+      await loadExecutionLogs()
+      pushAlert('success', data || `地块${plotNumber}执行成功，已发送MQTT消息`)
+      return true
+    } catch (error) {
+      console.error('立即执行失败:', error)
+      pushAlert('error', '执行失败: ' + (error.message || '未知错误'))
+      return false
     }
   }
   
@@ -572,6 +670,7 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   function evaluateAutomation() {
     const last = latest.value
     if (!last) return
+    
     // Light control
     if (automation.value.autoLightEnabled) {
       if (last.lightLux < automation.value.lightLuxThreshold && !lightOn.value) {
@@ -583,11 +682,38 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
         pushAlert('info', '自动化：光照恢复，已关闭补光灯')
       }
     }
+    
     // Moisture control
     if (automation.value.autoPumpEnabled) {
       if (last.soilMoisturePct < automation.value.soilMoistureLowThreshold) {
-        pushAlert('warning', `自动化：湿度(${Math.round(last.soilMoisturePct)}%) 低，执行抽水`)
+        pushAlert('warning', `自动化：土壤湿度(${Math.round(last.soilMoisturePct)}%) 低，执行抽水`)
       }
+    }
+    
+    // Temperature alerts
+    if (last.temperatureC > automation.value.temperatureHighThreshold) {
+      pushAlert('warning', `温度报警：温度(${last.temperatureC.toFixed(1)}°C) 高于阈值(${automation.value.temperatureHighThreshold}°C)`)
+    }
+    if (last.temperatureC < automation.value.temperatureLowThreshold) {
+      pushAlert('warning', `温度报警：温度(${last.temperatureC.toFixed(1)}°C) 低于阈值(${automation.value.temperatureLowThreshold}°C)`)
+    }
+    
+    // Humidity alerts
+    if (last.humidityPct > automation.value.humidityHighThreshold) {
+      pushAlert('warning', `湿度报警：湿度(${Math.round(last.humidityPct)}%) 高于阈值(${automation.value.humidityHighThreshold}%)`)
+    }
+    if (last.humidityPct < automation.value.humidityLowThreshold) {
+      pushAlert('warning', `湿度报警：湿度(${Math.round(last.humidityPct)}%) 低于阈值(${automation.value.humidityLowThreshold}%)`)
+    }
+    
+    // Oxygen alerts
+    if (last.oxygenPct < automation.value.oxygenLowThreshold) {
+      pushAlert('error', `氧气报警：氧气含量(${last.oxygenPct.toFixed(1)}%) 低于阈值(${automation.value.oxygenLowThreshold}%)`)
+    }
+    
+    // CO2 alerts
+    if (last.co2Ppm > automation.value.co2HighThreshold) {
+      pushAlert('error', `二氧化碳报警：二氧化碳含量(${last.co2Ppm}ppm) 高于阈值(${automation.value.co2HighThreshold}ppm)`)
     }
   }
   
@@ -690,6 +816,9 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     assignRecipeToPlot,
     addSchedule,
     removeSchedule,
+    executeSchedule,
+    executeAssignment,
+    executeFromLog,
     
     // 控制操作
     triggerCleaning,

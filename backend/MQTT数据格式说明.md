@@ -18,9 +18,12 @@
 {
   "recordTime": "2024-11-12 14:30:00",
   "temperatureC": 25.5,
+  "humidityPct": 60.5,
   "soilMoisturePct": 45.2,
   "lightLux": 12000,
-  "isRaining": false
+  "isRaining": false,
+  "oxygenPct": 20.5,
+  "co2Ppm": 400
 }
 ```
 
@@ -30,11 +33,14 @@
 |--------|------|------|------|------|
 | `recordTime` | String | 否 | 记录时间，格式：`yyyy-MM-dd HH:mm:ss`。如果不提供，使用服务器当前时间 | `"2024-11-12 14:30:00"` |
 | `temperatureC` | Number | 否* | 温度（摄氏度） | `25.5` |
+| `humidityPct` | Number | 否* | 湿度（百分比，0-100） | `60.5` |
 | `soilMoisturePct` | Number | 否* | 土壤湿度（百分比，0-100） | `45.2` |
 | `lightLux` | Integer | 否* | 光照强度（lux） | `12000` |
 | `isRaining` | Boolean | 否 | 是否下雨（true/false） | `false` |
+| `oxygenPct` | Number | 否* | 氧气含量（百分比，0-100） | `20.5` |
+| `co2Ppm` | Integer | 否* | 二氧化碳含量（ppm，0-10000） | `400` |
 
-**注意**: `temperatureC`、`soilMoisturePct`、`lightLux` 至少需要提供一个，否则消息会被忽略。
+**注意**: `temperatureC`、`humidityPct`、`soilMoisturePct`、`lightLux`、`oxygenPct`、`co2Ppm` 至少需要提供一个，否则消息会被忽略。
 
 ### 兼容格式
 
@@ -42,9 +48,12 @@
 
 - `time` → `recordTime`
 - `temperature` → `temperatureC`
+- `humidity` → `humidityPct`
 - `soilMoisture` 或 `moisture` → `soilMoisturePct`
 - `light` → `lightLux`
 - `raining` → `isRaining`
+- `oxygen` → `oxygenPct`
+- `co2` 或 `carbonDioxide` → `co2Ppm`
 
 ### 简化格式示例
 
@@ -65,9 +74,12 @@
 {
   "recordTime": "2024-11-12 14:30:00",
   "temperatureC": 25.5,
+  "humidityPct": 60.5,
   "soilMoisturePct": 45.2,
   "lightLux": 12000,
-  "isRaining": false
+  "isRaining": false,
+  "oxygenPct": 20.5,
+  "co2Ppm": 400
 }
 ```
 
@@ -85,9 +97,12 @@
 {
   "time": "2024-11-12 14:30:00",
   "temperature": 25.5,
+  "humidity": 60.5,
   "moisture": 45.2,
   "light": 12000,
-  "raining": 0
+  "raining": 0,
+  "oxygen": 20.5,
+  "co2": 400
 }
 ```
 
@@ -96,6 +111,7 @@
 ```json
 {
   "temperatureC": 25.5,
+  "humidityPct": 60.5,
   "soilMoisturePct": 45.2
 }
 ```
@@ -103,9 +119,12 @@
 ## 数据验证
 
 - **温度范围**: 建议 -50°C 到 100°C
+- **湿度范围**: 0-100%
 - **土壤湿度范围**: 0-100%
 - **光照强度**: 非负整数
-- **时间格式**: 必须为 `yyyy-MM-dd HH:mm:ss` 格式
+- **氧气含量范围**: 0-100%
+- **二氧化碳含量范围**: 0-10000 ppm
+- **时间格式**: 必须为 `yyyy-MM-dd HH:mm:ss` 格式（如果不提供，使用服务器当前时间）
 
 ## 数据存储
 
@@ -153,9 +172,12 @@ client.connect(broker, port, 60)
 data = {
     "recordTime": time.strftime("%Y-%m-%d %H:%M:%S"),
     "temperatureC": 25.5,
+    "humidityPct": 60.5,
     "soilMoisturePct": 45.2,
     "lightLux": 12000,
-    "isRaining": False
+    "isRaining": False,
+    "oxygenPct": 20.5,
+    "co2Ppm": 400
 }
 
 # 发布消息
@@ -204,16 +226,22 @@ void setup() {
 void loop() {
   // 读取传感器数据
   float temperature = 25.5;  // 从传感器读取
+  float humidity = 60.5;     // 从传感器读取
   float moisture = 45.2;     // 从传感器读取
   int light = 12000;          // 从传感器读取
-  bool raining = false;        // 从传感器读取
+  bool raining = false;       // 从传感器读取
+  float oxygen = 20.5;        // 从传感器读取
+  int co2 = 400;              // 从传感器读取
   
   // 创建 JSON 对象
-  StaticJsonDocument<200> doc;
+  StaticJsonDocument<300> doc;
   doc["temperatureC"] = temperature;
+  doc["humidityPct"] = humidity;
   doc["soilMoisturePct"] = moisture;
   doc["lightLux"] = light;
   doc["isRaining"] = raining;
+  doc["oxygenPct"] = oxygen;
+  doc["co2Ppm"] = co2;
   
   // 转换为字符串
   char buffer[200];

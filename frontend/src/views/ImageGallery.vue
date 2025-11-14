@@ -27,16 +27,28 @@ const images = computed(() => {
     time: h.time,
     url: `https://placehold.co/320x200?text=${encodeURIComponent(new Date(h.time).getHours() + ':00')}`,
     temperatureC: h.temperatureC,
+    humidityPct: h.humidityPct,
     soilMoisturePct: h.soilMoisturePct,
     lightLux: h.lightLux,
+    isRaining: h.isRaining,
+    oxygenPct: h.oxygenPct,
+    co2Ppm: h.co2Ppm,
   }))
 })
 
 function isAbnormal(img) {
-  const tempAbnormal = (img.temperatureC ?? 0) < 10 || (img.temperatureC ?? 0) > 35
-  const moistureThreshold = store.automation.soilMoistureLowThreshold ?? 35
+  // 只有温度高于舒适温度（高阈值）或土壤湿度低于10%才标记为异常
+  const tempHigh = store.automation.temperatureHighThreshold ?? 35
+  const tempAbnormal = (img.temperatureC ?? 0) > tempHigh
+  
+  const moistureThreshold = 10 // 土壤湿度低于10%才异常
   const moistureAbnormal = (img.soilMoisturePct ?? 0) < moistureThreshold
-  return { flag: tempAbnormal || moistureAbnormal, tempAbnormal, moistureAbnormal }
+  
+  return { 
+    flag: tempAbnormal || moistureAbnormal,
+    tempAbnormal, 
+    moistureAbnormal
+  }
 }
 </script>
 
@@ -92,8 +104,12 @@ function isAbnormal(img) {
           </div>
           <div style="padding: 6px 4px; font-size: 12px; color: #666; display: grid; row-gap: 2px;">
             <div>温度：{{ (img.temperatureC ?? 0).toFixed(1) }}°C</div>
+            <div>湿度：{{ Math.round(img.humidityPct ?? 0) }}%</div>
             <div>土壤湿度：{{ Math.round(img.soilMoisturePct ?? 0) }}%</div>
             <div>光照：{{ Math.round(img.lightLux ?? 0) }} lux</div>
+            <div>是否下雨：{{ img.isRaining ? '是' : '否' }}</div>
+            <div>氧气：{{ (img.oxygenPct ?? 0).toFixed(1) }}%</div>
+            <div>二氧化碳：{{ img.co2Ppm ?? 0 }} ppm</div>
           </div>
         </el-card>
       </el-col>

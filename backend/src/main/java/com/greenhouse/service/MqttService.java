@@ -3,6 +3,7 @@ package com.greenhouse.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.greenhouse.config.EmqxConfig;
 import com.greenhouse.dto.SensorDataDTO;
+import com.greenhouse.entity.SensorData;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -134,8 +135,9 @@ public class MqttService implements MqttCallback {
             // 尝试解析为传感器数据并保存到数据库
             try {
                 parseAndSaveSensorData(payload);
+                log.debug("MQTT消息处理完成，数据已保存到数据库");
             } catch (Exception e) {
-                log.warn("解析传感器数据失败，消息可能不是传感器数据格式: {}", e.getMessage());
+                log.error("解析传感器数据失败，消息可能不是传感器数据格式: {}", e.getMessage(), e);
             }
             
         } catch (Exception e) {
@@ -162,6 +164,14 @@ public class MqttService implements MqttCallback {
             Object temp = data.getOrDefault("temperatureC", data.get("temperature"));
             if (temp != null) {
                 dto.setTemperatureC(new BigDecimal(temp.toString()));
+            }
+        }
+        
+        // 解析湿度
+        if (data.containsKey("humidityPct") || data.containsKey("humidity")) {
+            Object humidity = data.getOrDefault("humidityPct", data.get("humidity"));
+            if (humidity != null) {
+                dto.setHumidityPct(new BigDecimal(humidity.toString()));
             }
         }
         
@@ -202,8 +212,27 @@ public class MqttService implements MqttCallback {
             }
         }
         
+        // 解析氧气含量
+        if (data.containsKey("oxygenPct") || data.containsKey("oxygen")) {
+            Object oxygen = data.getOrDefault("oxygenPct", data.get("oxygen"));
+            if (oxygen != null) {
+                dto.setOxygenPct(new BigDecimal(oxygen.toString()));
+            }
+        }
+        
+        // 解析二氧化碳含量
+        if (data.containsKey("co2Ppm") || data.containsKey("co2") || data.containsKey("carbonDioxide")) {
+            Object co2 = data.getOrDefault("co2Ppm", 
+                data.getOrDefault("co2", data.get("carbonDioxide")));
+            if (co2 != null) {
+                dto.setCo2Ppm(Integer.parseInt(co2.toString()));
+            }
+        }
+        
         // 验证必要字段（至少需要一个传感器数据）
-        if (dto.getTemperatureC() == null && dto.getSoilMoisturePct() == null && dto.getLightLux() == null) {
+        if (dto.getTemperatureC() == null && dto.getHumidityPct() == null && 
+            dto.getSoilMoisturePct() == null && dto.getLightLux() == null &&
+            dto.getOxygenPct() == null && dto.getCo2Ppm() == null) {
             log.debug("消息不包含传感器数据字段，跳过保存");
             return;
         }
@@ -211,6 +240,9 @@ public class MqttService implements MqttCallback {
         // 为缺失的字段设置默认值（数据库要求 NOT NULL）
         if (dto.getTemperatureC() == null) {
             dto.setTemperatureC(BigDecimal.ZERO);
+        }
+        if (dto.getHumidityPct() == null) {
+            dto.setHumidityPct(BigDecimal.ZERO);
         }
         if (dto.getSoilMoisturePct() == null) {
             dto.setSoilMoisturePct(BigDecimal.ZERO);
@@ -221,11 +253,24 @@ public class MqttService implements MqttCallback {
         if (dto.getIsRaining() == null) {
             dto.setIsRaining(false);
         }
+        if (dto.getOxygenPct() == null) {
+            dto.setOxygenPct(BigDecimal.ZERO);
+        }
+        if (dto.getCo2Ppm() == null) {
+            dto.setCo2Ppm(0);
+        }
         
         // 保存到数据库
-        sensorDataService.create(dto);
-        log.info("成功保存传感器数据到数据库: 温度={}, 湿度={}, 光照={}, 下雨={}", 
-            dto.getTemperatureC(), dto.getSoilMoisturePct(), dto.getLightLux(), dto.getIsRaining());
+        try {
+            SensorData saved = sensorDataService.create(dto);
+            log.info("成功保存传感器数据到数据库 - ID: {}, 时间: {}, 温度={}°C, 湿度={}%, 土壤湿度={}%, 光照={}lux, 下雨={}, 氧气={}%, 二氧化碳={}ppm", 
+                saved.getId(), saved.getRecordTime(),
+                dto.getTemperatureC(), dto.getHumidityPct(), dto.getSoilMoisturePct(), 
+                dto.getLightLux(), dto.getIsRaining(), dto.getOxygenPct(), dto.getCo2Ppm());
+        } catch (Exception e) {
+            log.error("保存传感器数据到数据库失败: {}", e.getMessage(), e);
+            throw e; // 重新抛出异常，让上层处理
+        }
     }
     
     /**

@@ -19,9 +19,17 @@ public class ImageDTO {
     
     private BigDecimal temperatureC;
     
+    private BigDecimal humidityPct;
+    
     private BigDecimal soilMoisturePct;
     
     private Integer lightLux;
+    
+    private Boolean isRaining;
+    
+    private BigDecimal oxygenPct;
+    
+    private Integer co2Ppm;
     
     private Integer plotId;
 }

@@ -48,49 +48,84 @@ onUnmounted(() => {
         </template>
         <el-row :gutter="16">
           <!-- 温度图表 -->
-          <el-col :span="12">
+          <el-col :span="8">
             <EChartLine
               title="温度"
               :data="store.hourly"
               data-key="temperatureC"
               unit="°C"
               color="#ef4444"
-              height="250px"
+              height="220px"
+            />
+          </el-col>
+          <!-- 湿度图表 -->
+          <el-col :span="8">
+            <EChartLine
+              title="湿度"
+              :data="store.hourly"
+              data-key="humidityPct"
+              unit="%"
+              color="#8b5cf6"
+              height="220px"
             />
           </el-col>
           <!-- 土壤湿度图表 -->
-          <el-col :span="12">
+          <el-col :span="8">
             <EChartLine
               title="土壤湿度"
               :data="store.hourly"
               data-key="soilMoisturePct"
               unit="%"
               color="#3b82f6"
-              height="250px"
+              height="220px"
             />
           </el-col>
         </el-row>
         <el-row :gutter="16" style="margin-top: 16px;">
           <!-- 光照图表 -->
-          <el-col :span="12">
+          <el-col :span="8">
             <EChartLine
               title="光照强度"
               :data="store.hourly"
               data-key="lightLux"
               unit=" lux"
               color="#10b981"
-              height="250px"
+              height="220px"
             />
           </el-col>
           <!-- 是否下雨图表 -->
-          <el-col :span="12">
+          <el-col :span="8">
             <EChartLine
               title="是否下雨"
               :data="store.hourly"
               data-key="isRaining"
               unit=""
               color="#f59e0b"
-              height="250px"
+              height="220px"
+            />
+          </el-col>
+          <!-- 氧气含量图表 -->
+          <el-col :span="8">
+            <EChartLine
+              title="氧气含量"
+              :data="store.hourly"
+              data-key="oxygenPct"
+              unit="%"
+              color="#06b6d4"
+              height="220px"
+            />
+          </el-col>
+        </el-row>
+        <el-row :gutter="16" style="margin-top: 16px;">
+          <!-- 二氧化碳含量图表 -->
+          <el-col :span="8">
+            <EChartLine
+              title="二氧化碳含量"
+              :data="store.hourly"
+              data-key="co2Ppm"
+              unit=" ppm"
+              color="#ec4899"
+              height="220px"
             />
           </el-col>
         </el-row>
@@ -112,9 +147,12 @@ onUnmounted(() => {
         <div v-if="store.latest" style="display:grid;row-gap:6px;">
           <el-descriptions :column="1" border>
             <el-descriptions-item label="温度">{{ store.latest.temperatureC.toFixed(1) }}°C</el-descriptions-item>
+            <el-descriptions-item label="湿度">{{ Math.round(store.latest.humidityPct || 0) }}%</el-descriptions-item>
             <el-descriptions-item label="土壤湿度">{{ Math.round(store.latest.soilMoisturePct) }}%</el-descriptions-item>
             <el-descriptions-item label="光照">{{ Math.round(store.latest.lightLux) }} lux</el-descriptions-item>
             <el-descriptions-item label="是否下雨">{{ store.latest.isRaining ? '是' : '否' }}</el-descriptions-item>
+            <el-descriptions-item label="氧气含量">{{ (store.latest.oxygenPct || 0).toFixed(1) }}%</el-descriptions-item>
+            <el-descriptions-item label="二氧化碳">{{ store.latest.co2Ppm || 0 }} ppm</el-descriptions-item>
             <el-descriptions-item label="补光灯">{{ store.lightOn ? '开启' : '关闭' }}</el-descriptions-item>
           </el-descriptions>
         </div>

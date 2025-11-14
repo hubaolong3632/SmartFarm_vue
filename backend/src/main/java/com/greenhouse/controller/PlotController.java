@@ -7,6 +7,7 @@ import com.greenhouse.entity.*;
 import com.greenhouse.mapper.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 /**
  * 地块管理控制器
  */
+@Slf4j
 @RestController
 @RequestMapping("/plots")
 @RequiredArgsConstructor
@@ -30,6 +32,7 @@ public class PlotController {
     private final PlotScheduleMapper plotScheduleMapper;
     private final RecipeMapper recipeMapper;
     private final ExecutionLogMapper executionLogMapper;
+    private final com.greenhouse.service.ScheduleTaskService scheduleTaskService;
     
     /**
      * 获取所有地块
@@ -113,13 +116,42 @@ public class PlotController {
         PlotSchedule schedule = new PlotSchedule();
         schedule.setPlotId(plotId);
         schedule.setRecipeId(dto.getRecipeId());
-        schedule.setScheduleTime(LocalTime.parse(dto.getTimeHHmm()));
+        
+        // 设置执行时间
+        if (dto.getTimeHHmm() != null && !dto.getTimeHHmm().isEmpty()) {
+            schedule.setScheduleTime(LocalTime.parse(dto.getTimeHHmm()));
+        }
+        
         schedule.setExecutions(dto.getExecutions() != null ? dto.getExecutions() : 1);
         schedule.setIsEnabled(true);
         Date now3 = new Date();
         schedule.setCreatedAt(now3);
         schedule.setUpdatedAt(now3);
+        
+        // 先插入基本字段
         plotScheduleMapper.insert(schedule);
+        
+        // 然后使用自定义SQL更新新字段（如果数据库支持）
+        try {
+            String scheduleType = dto.getScheduleType() != null ? dto.getScheduleType() : "daily";
+            Integer dayOfWeek = dto.getDayOfWeek();
+            Date scheduleDatetime = null;
+            
+            if (dto.getScheduleDatetime() != null && !dto.getScheduleDatetime().isEmpty()) {
+                try {
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    scheduleDatetime = sdf.parse(dto.getScheduleDatetime());
+                } catch (Exception e) {
+                    throw new IllegalArgumentException("精确时间格式错误，应为 yyyy-MM-dd HH:mm:ss");
+                }
+            }
+            
+            // 使用自定义SQL更新新字段
+            plotScheduleMapper.updateScheduleFields(schedule.getId(), scheduleType, dayOfWeek, scheduleDatetime);
+        } catch (Exception e) {
+            // 如果更新失败（字段不存在），记录日志但不影响基本功能
+            log.warn("更新定时任务扩展字段失败，可能数据库表未包含新字段: {}", e.getMessage());
+        }
         
         return Result.success(schedule);
     }
@@ -141,6 +173,85 @@ public class PlotController {
     public Result<Void> deleteSchedule(@RequestParam Long scheduleId) {
         plotScheduleMapper.deleteById(scheduleId);
         return Result.success();
+    }
+    
+    /**
+     * 立即执行定时计划（发送MQTT消息）
+     */
+    @PostMapping("/schedules/execute")
+    @Transactional
+    public Result<String> executeSchedule(@RequestParam Long scheduleId) {
+        PlotSchedule schedule = plotScheduleMapper.selectById(scheduleId);
+        if (schedule == null) {
+            throw new IllegalArgumentException("定时计划不存在: " + scheduleId);
+        }
+        
+        Recipe recipe = recipeMapper.selectById(schedule.getRecipeId());
+        if (recipe == null) {
+            throw new IllegalArgumentException("配方不存在: " + schedule.getRecipeId());
+        }
+        
+        Plot plot = plotMapper.selectById(schedule.getPlotId());
+        if (plot == null) {
+            throw new IllegalArgumentException("地块不存在: " + schedule.getPlotId());
+        }
+        
+        // 调用ScheduleTaskService执行
+        scheduleTaskService.executeScheduleImmediately(schedule);
+        
+        // 记录执行日志
+        ExecutionLog log = new ExecutionLog();
+        log.setPlotId(schedule.getPlotId());
+        log.setRecipeId(schedule.getRecipeId());
+        log.setExecutions(schedule.getExecutions() != null ? schedule.getExecutions() : 1);
+        log.setExecutionType("manual");
+        log.setScheduleId(scheduleId);
+        Date now = new Date();
+        log.setExecutedAt(now);
+        log.setCreatedAt(now);
+        executionLogMapper.insert(log);
+        
+        return Result.success("执行成功，已发送MQTT消息到'time'主题");
+    }
+    
+    /**
+     * 立即执行配方分配（发送MQTT消息）
+     */
+    @PostMapping("/assign/execute")
+    @Transactional
+    public Result<String> executeAssignment(
+            @RequestParam Integer plotId,
+            @RequestParam(required = false) Integer executions) {
+        Plot plot = plotMapper.selectById(plotId);
+        if (plot == null) {
+            throw new IllegalArgumentException("地块不存在: " + plotId);
+        }
+        
+        PlotAssignment assignment = plotAssignmentMapper.findByPlotIdAndIsActiveTrue(plotId);
+        if (assignment == null) {
+            throw new IllegalArgumentException("地块未分配配方: " + plotId);
+        }
+        
+        Recipe recipe = recipeMapper.selectById(assignment.getRecipeId());
+        if (recipe == null) {
+            throw new IllegalArgumentException("配方不存在: " + assignment.getRecipeId());
+        }
+        
+        // 调用ScheduleTaskService执行
+        scheduleTaskService.executeRecipeImmediately(plot, recipe, executions != null ? executions : 1);
+        
+        // 记录执行日志
+        ExecutionLog log = new ExecutionLog();
+        log.setPlotId(plotId);
+        log.setRecipeId(assignment.getRecipeId());
+        log.setExecutions(executions != null ? executions : 1);
+        log.setExecutionType("manual");
+        Date now = new Date();
+        log.setExecutedAt(now);
+        log.setCreatedAt(now);
+        executionLogMapper.insert(log);
+        
+        return Result.success("执行成功，已发送MQTT消息到'time'主题");
     }
     
     /**

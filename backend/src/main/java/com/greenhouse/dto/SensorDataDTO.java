@@ -22,6 +22,11 @@ public class SensorDataDTO {
     @DecimalMax(value = "100", message = "温度不能高于100°C")
     private BigDecimal temperatureC;
     
+    // 湿度（可选）
+    @DecimalMin(value = "0", message = "湿度不能小于0")
+    @DecimalMax(value = "100", message = "湿度不能大于100")
+    private BigDecimal humidityPct;
+    
     // 土壤湿度（可选）
     @DecimalMin(value = "0", message = "土壤湿度不能小于0")
     @DecimalMax(value = "100", message = "土壤湿度不能大于100")
@@ -32,5 +37,15 @@ public class SensorDataDTO {
     
     // 是否下雨（可选）
     private Boolean isRaining;
+    
+    // 氧气含量（可选）
+    @DecimalMin(value = "0", message = "氧气含量不能小于0")
+    @DecimalMax(value = "100", message = "氧气含量不能大于100")
+    private BigDecimal oxygenPct;
+    
+    // 二氧化碳含量（可选，单位：ppm）
+    @DecimalMin(value = "0", message = "二氧化碳含量不能小于0")
+    @DecimalMax(value = "10000", message = "二氧化碳含量不能大于10000")
+    private Integer co2Ppm;
 }
 

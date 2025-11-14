@@ -2,6 +2,7 @@ package com.greenhouse.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.greenhouse.entity.SensorData;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -32,5 +33,13 @@ public interface SensorDataMapper extends BaseMapper<SensorData> {
      */
     @Select("SELECT * FROM sensor_data ORDER BY record_time DESC LIMIT #{limit}")
     List<SensorData> findLatestRecords(@Param("limit") int limit);
+    
+    /**
+     * 插入基础字段（兼容旧表结构，不包含新字段）
+     * 用于降级处理：当新字段不存在时使用此方法
+     */
+    @Insert("INSERT INTO sensor_data (record_time, temperature_c, soil_moisture_pct, light_lux, is_raining, created_at, updated_at) " +
+            "VALUES (#{recordTime}, #{temperatureC}, #{soilMoisturePct}, #{lightLux}, #{isRaining}, #{createdAt}, #{updatedAt})")
+    int insertBasicFields(SensorData sensorData);
 }
 

@@ -37,6 +37,11 @@ public class Image {
     private BigDecimal temperatureC;
 
     /**
+     * 湿度（百分比）
+     */
+    private BigDecimal humidityPct;
+
+    /**
      * 土壤湿度（百分比）
      */
     private BigDecimal soilMoisturePct;
@@ -45,6 +50,21 @@ public class Image {
      * 光照强度（lux）
      */
     private Integer lightLux;
+
+    /**
+     * 是否下雨（0否/1是）
+     */
+    private Boolean isRaining;
+
+    /**
+     * 氧气含量（百分比）
+     */
+    private BigDecimal oxygenPct;
+
+    /**
+     * 二氧化碳含量（ppm）
+     */
+    private Integer co2Ppm;
 
     /**
      * 关联地块ID（可选）
