@@ -490,10 +490,10 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     }
     // 如果是相对路径（以/api开头），添加后端基础URL
     if (url.startsWith('/api/')) {
-      return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:11000'}${url}`
+      return `http://localhost:11000${url}`
     }
     // 如果是其他相对路径，也添加基础URL
-    return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:11000'}/api${url.startsWith('/') ? '' : '/'}${url}`
+    return `http://localhost:11000/api${url.startsWith('/') ? '' : '/'}${url}`
   }
   
   /**

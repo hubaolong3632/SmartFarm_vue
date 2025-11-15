@@ -136,11 +136,11 @@ public class SensorDataService {
     public List<SensorData> getToday() {
         // 获取最新的30条记录，按时间倒序排列
         List<SensorData> records = sensorDataMapper.findLatestRecords(30);
-        log.debug("查询到最新30条记录，实际返回: {} 条", records.size());
+//        log.debug("查询到最新30条记录，实际返回: {} 条", records.size());
         if (!records.isEmpty()) {
-            log.debug("最新记录时间: {}, 最早记录时间: {}", 
-                records.get(0).getRecordTime(), 
-                records.get(records.size() - 1).getRecordTime());
+//            log.debug("最新记录时间: {}, 最早记录时间: {}",
+//                records.get(0).getRecordTime(),
+//                records.get(records.size() - 1).getRecordTime());
         }
         
         // 为 NULL 值设置默认值，确保前端能正确显示
