@@ -6,8 +6,8 @@ import { ElMessage } from 'element-plus'
 
 // 创建 axios 实例
 const service = axios.create({
-  // baseURL: 'http://localhost:11000/api', // 后端 API 基础路径
-  baseURL: 'https://smartfarmservice.00000.work/api', // 后端 API 基础路径
+  baseURL: 'http://localhost:10002/api', // 后端 API 基础路径
+  // baseURL: 'https://smartfarmservice.00000.work/api', // 后端 API 基础路径
   timeout: 10000, // 请求超时时间
   headers: {
     'Content-Type': 'application/json'

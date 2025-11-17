@@ -3,8 +3,12 @@ package com.greenhouse.controller;
 import com.greenhouse.common.Result;
 import com.greenhouse.dto.ImageDTO;
 import com.greenhouse.entity.Image;
+import com.greenhouse.entity.Plot;
+import com.greenhouse.entity.SensorData;
 import com.greenhouse.mapper.ImageMapper;
 import com.greenhouse.mapper.PlotMapper;
+import com.greenhouse.service.SensorDataService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +41,7 @@ public class ImageController {
     
     private final ImageMapper imageMapper;
     private final PlotMapper plotMapper;
+    private final SensorDataService sensorDataService;
     
     @Value("${file.upload.path:./uploads/images}")
     private String uploadPath;
@@ -46,34 +51,162 @@ public class ImageController {
     
     /**
      * 创建图片记录
+     * 只需要上传 url 字段，其他传感器数据从最新的实时传感器数据中获取
      */
+
+
+
+
+    /**
+     * 上传文件并自动保存图片记录
+     * 上传成功后自动获取最新传感器数据并保存到数据库
+     * @param file 上传的文件
+     * @param request HTTP请求对象
+     * @return 保存的图片记录
+     */
+    @PostMapping("/file")
+    @Transactional
+    public Result<Image> uploadFile(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
+        if (file.isEmpty()) {
+            return Result.error("上传的文件为空");
+        }
+        
+        try {
+            // 1. 处理文件名（添加时间戳防止重复）
+            String originalFileName = file.getOriginalFilename();
+            if (originalFileName == null || !originalFileName.contains(".")) {
+                return Result.error("文件名格式不正确");
+            }
+            
+            long currentTimeMillis = System.currentTimeMillis();
+            String fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
+            String fileName = currentTimeMillis + fileExtension;
+            
+            // 2. 配置文件存储路径
+            String basePath = System.getProperty("user.dir") + "/file/1/";
+            File storageDir = new File(basePath);
+            if (!storageDir.exists()) {
+                storageDir.mkdirs(); // 递归创建目录
+            }
+
+            // 3. 保存文件到服务器
+            Path targetPath = Paths.get(basePath + fileName);
+            Files.copy(file.getInputStream(), targetPath);
+
+            // 4. 构建可访问的URL
+            String serverUrl = request.getScheme() + "://" + request.getServerName()
+                    + ":" + request.getServerPort();
+            // 获取 context-path（如果有配置的话，如 /api）
+            String contextPath = request.getContextPath();
+            // 构建完整的文件访问URL
+            String fileContextPath = contextPath + "/file/1/";
+            String fileAccessUrl = serverUrl + fileContextPath + fileName;
+
+            log.info("文件上传成功: {} -> {}", originalFileName, fileAccessUrl);
+
+            // 5. 自动保存图片记录（获取最新传感器数据并合并）
+            ImageDTO dto = new ImageDTO();
+            dto.setUrl(fileAccessUrl);
+            
+            // 调用 create 方法保存图片记录
+            Result<Image> createResult = create(dto);
+            
+            if (createResult.getCode() != null && createResult.getCode() == 200) {
+                log.info("图片记录保存成功 - ID: {}", createResult.getData() != null ? createResult.getData().getId() : "未知");
+                return createResult;
+            } else {
+                log.warn("图片记录保存失败: {}", createResult.getMessage());
+                return Result.error("文件上传成功，但保存图片记录失败: " + createResult.getMessage());
+            }
+
+        } catch (IOException e) {
+            log.error("上传文件失败: {}", e.getMessage(), e);
+            return Result.error("上传文件失败: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("处理文件上传时发生错误: {}", e.getMessage(), e);
+            return Result.error("处理文件上传时发生错误: " + e.getMessage());
+        }
+    }
+
+
+
+
+
+
+
+
+
     @PostMapping
     @Transactional
-    public Result<Image> create(@Valid @RequestBody ImageDTO dto) {
+    public Result<Image> create(@RequestBody ImageDTO dto) {
+        // 验证 url 是否提供
+        if (dto.getUrl() == null || dto.getUrl().trim().isEmpty()) {
+            return Result.error("图片URL不能为空");
+        }
+
+        // 获取最新的传感器数据
+        SensorData latestSensorData = sensorDataService.getLatest();
+
         Image image = new Image();
         image.setImageUrl(dto.getUrl());
-        image.setRecordTime(dto.getRecordTime());
-        image.setTemperatureC(dto.getTemperatureC());
-        image.setHumidityPct(dto.getHumidityPct());
-        image.setSoilMoisturePct(dto.getSoilMoisturePct());
-        image.setLightLux(dto.getLightLux());
-        image.setIsRaining(dto.getIsRaining());
-        image.setOxygenPct(dto.getOxygenPct());
-        image.setCo2Ppm(dto.getCo2Ppm());
-        image.setPlotId(dto.getPlotId());
-        
+
+        // 记录时间：使用当前时间
+        image.setRecordTime(new Date());
+
+        // 从最新传感器数据中获取所有传感器字段
+        if (latestSensorData != null) {
+            image.setTemperatureC(latestSensorData.getTemperatureC());
+            image.setHumidityPct(latestSensorData.getHumidityPct());
+            image.setSoilMoisturePct(latestSensorData.getSoilMoisturePct());
+            image.setLightLux(latestSensorData.getLightLux());
+            image.setIsRaining(latestSensorData.getIsRaining());
+            image.setOxygenPct(latestSensorData.getOxygenPct());
+            image.setCo2Ppm(latestSensorData.getCo2Ppm());
+            log.info("从最新传感器数据获取数据: 温度={}, 湿度={}, 土壤湿度={}, 光照={}, 是否下雨={}, 氧气={}, 二氧化碳={}",
+                latestSensorData.getTemperatureC(),
+                latestSensorData.getHumidityPct(),
+                latestSensorData.getSoilMoisturePct(),
+                latestSensorData.getLightLux(),
+                latestSensorData.getIsRaining(),
+                latestSensorData.getOxygenPct(),
+                latestSensorData.getCo2Ppm());
+        } else {
+            // 如果没有传感器数据，设置默认值
+            log.warn("未找到最新传感器数据，使用默认值");
+            image.setTemperatureC(BigDecimal.ZERO);
+            image.setHumidityPct(BigDecimal.ZERO);
+            image.setSoilMoisturePct(BigDecimal.ZERO);
+            image.setLightLux(0);
+            image.setIsRaining(false);
+            image.setOxygenPct(BigDecimal.ZERO);
+            image.setCo2Ppm(0);
+        }
+
+        // 验证 plotId 是否存在，如果不存在则设置为 null
+        if (dto.getPlotId() != null) {
+            Plot plot = plotMapper.selectById(dto.getPlotId());
+            if (plot == null) {
+                log.warn("地块ID {} 不存在，将 plotId 设置为 null", dto.getPlotId());
+                image.setPlotId(null);
+            } else {
+                image.setPlotId(dto.getPlotId());
+            }
+        } else {
+            image.setPlotId(null);
+        }
+
         // 判断是否异常：只有温度高于舒适温度（35°C）或土壤湿度低于10%才标记为异常
         boolean isAbnormal = false;
         StringBuilder abnormalReason = new StringBuilder();
         // 温度高于舒适温度（高阈值，默认35°C）
-        if (dto.getTemperatureC() != null && 
-            dto.getTemperatureC().compareTo(new BigDecimal("35")) > 0) {
+        if (image.getTemperatureC() != null &&
+            image.getTemperatureC().compareTo(new BigDecimal("35")) > 0) {
             isAbnormal = true;
             abnormalReason.append("温度异常");
         }
         // 土壤湿度低于10%
-        if (dto.getSoilMoisturePct() != null && 
-            dto.getSoilMoisturePct().compareTo(new BigDecimal("10")) < 0) {
+        if (image.getSoilMoisturePct() != null &&
+            image.getSoilMoisturePct().compareTo(new BigDecimal("10")) < 0) {
             isAbnormal = true;
             if (abnormalReason.length() > 0) abnormalReason.append(", ");
             abnormalReason.append("土壤湿度异常");
@@ -81,55 +214,13 @@ public class ImageController {
         image.setIsAbnormal(isAbnormal);
         image.setAbnormalReason(abnormalReason.length() > 0 ? abnormalReason.toString() : null);
         image.setCreatedAt(new Date());
-        
+
         imageMapper.insert(image);
+        log.info("图片记录创建成功 - ID: {}, URL: {}", image.getId(), image.getImageUrl());
         return Result.success(image);
     }
-    
-    /**
-     * 批量创建图片记录
-     */
-    @PostMapping("/batch")
-    @Transactional
-    public Result<List<Image>> batchCreate(@Valid @RequestBody List<ImageDTO> dtos) {
-        List<Image> images = dtos.stream().map(dto -> {
-            Image image = new Image();
-            image.setImageUrl(dto.getUrl());
-            image.setRecordTime(dto.getRecordTime());
-            image.setTemperatureC(dto.getTemperatureC());
-            image.setHumidityPct(dto.getHumidityPct());
-            image.setSoilMoisturePct(dto.getSoilMoisturePct());
-            image.setLightLux(dto.getLightLux());
-            image.setIsRaining(dto.getIsRaining());
-            image.setOxygenPct(dto.getOxygenPct());
-            image.setCo2Ppm(dto.getCo2Ppm());
-            image.setPlotId(dto.getPlotId());
-            
-            // 判断是否异常：只有温度高于舒适温度（35°C）或土壤湿度低于10%才标记为异常
-            boolean isAbnormal = false;
-            StringBuilder abnormalReason = new StringBuilder();
-            // 温度高于舒适温度（高阈值，默认35°C）
-            if (dto.getTemperatureC() != null && 
-                dto.getTemperatureC().compareTo(new BigDecimal("35")) > 0) {
-                isAbnormal = true;
-                abnormalReason.append("温度异常");
-            }
-            // 土壤湿度低于10%
-            if (dto.getSoilMoisturePct() != null && 
-                dto.getSoilMoisturePct().compareTo(new BigDecimal("10")) < 0) {
-                isAbnormal = true;
-                if (abnormalReason.length() > 0) abnormalReason.append(", ");
-                abnormalReason.append("土壤湿度异常");
-            }
-            image.setIsAbnormal(isAbnormal);
-            image.setAbnormalReason(abnormalReason.length() > 0 ? abnormalReason.toString() : null);
-            image.setCreatedAt(new Date());
-            imageMapper.insert(image);
-            return image;
-        }).toList();
-        return Result.success(images);
-    }
-    
+
+
     /**
      * 根据日期查询图片
      */
@@ -156,46 +247,6 @@ public class ImageController {
         return Result.success(imageMapper.findByPlotIdOrderByRecordTimeDesc(plotId));
     }
     
-    /**
-     * 图片上传接口
-     * 上传图片文件并返回图片URL
-     */
-    @PostMapping("/upload")
-    public Result<String> uploadImage(@RequestParam("file") MultipartFile file) {
-        if (file.isEmpty()) {
-            return Result.error("上传的文件为空");
-        }
-        
-        try {
-            // 创建上传目录
-            Path uploadDir = Paths.get(uploadPath);
-            if (!Files.exists(uploadDir)) {
-                Files.createDirectories(uploadDir);
-            }
-            
-            // 生成唯一文件名
-            String originalFilename = file.getOriginalFilename();
-            String extension = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-            }
-            String filename = UUID.randomUUID().toString() + extension;
-            
-            // 保存文件
-            Path filePath = uploadDir.resolve(filename);
-            Files.write(filePath, file.getBytes());
-            
-            // 生成访问URL
-            String imageUrl = urlPrefix + filename;
-            
-            log.info("图片上传成功: {} -> {}", originalFilename, imageUrl);
-            return Result.success(imageUrl);
-            
-        } catch (IOException e) {
-            log.error("图片上传失败: {}", e.getMessage(), e);
-            return Result.error("图片上传失败: " + e.getMessage());
-        }
-    }
     
     /**
      * 保存图片记录（包含传感器数据）
@@ -223,7 +274,19 @@ public class ImageController {
             image.setIsRaining(dto.getIsRaining());
             image.setOxygenPct(dto.getOxygenPct());
             image.setCo2Ppm(dto.getCo2Ppm());
-            image.setPlotId(dto.getPlotId());
+            
+            // 验证 plotId 是否存在，如果不存在则设置为 null
+            if (dto.getPlotId() != null) {
+                Plot plot = plotMapper.selectById(dto.getPlotId());
+                if (plot == null) {
+                    log.warn("地块ID {} 不存在，将 plotId 设置为 null", dto.getPlotId());
+                    image.setPlotId(null);
+                } else {
+                    image.setPlotId(dto.getPlotId());
+                }
+            } else {
+                image.setPlotId(null);
+            }
             
             // 判断是否异常：只有温度高于舒适温度（35°C）或土壤湿度低于10%才标记为异常
             boolean isAbnormal = false;
@@ -249,94 +312,6 @@ public class ImageController {
             log.info("图片记录保存成功 - ID: {}, URL: {}", image.getId(), image.getImageUrl());
             return Result.success(image);
             
-        } catch (Exception e) {
-            log.error("保存图片记录失败: {}", e.getMessage(), e);
-            return Result.error("保存图片记录失败: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * 上传并保存图片（一步完成）
-     * 上传图片文件，同时保存图片记录和传感器数据
-     */
-    @PostMapping("/upload-and-save")
-    @Transactional
-    public Result<Image> uploadAndSave(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "temperatureC", required = false) BigDecimal temperatureC,
-            @RequestParam(value = "humidityPct", required = false) BigDecimal humidityPct,
-            @RequestParam(value = "soilMoisturePct", required = false) BigDecimal soilMoisturePct,
-            @RequestParam(value = "lightLux", required = false) Integer lightLux,
-            @RequestParam(value = "isRaining", required = false) Boolean isRaining,
-            @RequestParam(value = "oxygenPct", required = false) BigDecimal oxygenPct,
-            @RequestParam(value = "co2Ppm", required = false) Integer co2Ppm,
-            @RequestParam(value = "plotId", required = false) Integer plotId,
-            @RequestParam(value = "recordTime", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date recordTime) {
-        
-        try {
-            // 1. 上传图片
-            if (file.isEmpty()) {
-                return Result.error("上传的文件为空");
-            }
-            
-            // 创建上传目录
-            Path uploadDir = Paths.get(uploadPath);
-            if (!Files.exists(uploadDir)) {
-                Files.createDirectories(uploadDir);
-            }
-            
-            // 生成唯一文件名
-            String originalFilename = file.getOriginalFilename();
-            String extension = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-            }
-            String filename = UUID.randomUUID().toString() + extension;
-            
-            // 保存文件
-            Path filePath = uploadDir.resolve(filename);
-            Files.write(filePath, file.getBytes());
-            
-            // 生成访问URL
-            String imageUrl = urlPrefix + filename;
-            
-            // 2. 保存图片记录
-            Image image = new Image();
-            image.setImageUrl(imageUrl);
-            image.setRecordTime(recordTime != null ? recordTime : new Date());
-            image.setTemperatureC(temperatureC);
-            image.setHumidityPct(humidityPct);
-            image.setSoilMoisturePct(soilMoisturePct);
-            image.setLightLux(lightLux);
-            image.setIsRaining(isRaining != null ? isRaining : false);
-            image.setOxygenPct(oxygenPct);
-            image.setCo2Ppm(co2Ppm);
-            image.setPlotId(plotId);
-            
-            // 判断是否异常
-            boolean isAbnormal = false;
-            StringBuilder abnormalReason = new StringBuilder();
-            if (temperatureC != null && temperatureC.compareTo(new BigDecimal("35")) > 0) {
-                isAbnormal = true;
-                abnormalReason.append("温度异常");
-            }
-            if (soilMoisturePct != null && soilMoisturePct.compareTo(new BigDecimal("10")) < 0) {
-                isAbnormal = true;
-                if (abnormalReason.length() > 0) abnormalReason.append(", ");
-                abnormalReason.append("土壤湿度异常");
-            }
-            image.setIsAbnormal(isAbnormal);
-            image.setAbnormalReason(abnormalReason.length() > 0 ? abnormalReason.toString() : null);
-            image.setCreatedAt(new Date());
-            
-            imageMapper.insert(image);
-            
-            log.info("图片上传并保存成功 - ID: {}, URL: {}", image.getId(), imageUrl);
-            return Result.success(image);
-            
-        } catch (IOException e) {
-            log.error("图片上传失败: {}", e.getMessage(), e);
-            return Result.error("图片上传失败: " + e.getMessage());
         } catch (Exception e) {
             log.error("保存图片记录失败: {}", e.getMessage(), e);
             return Result.error("保存图片记录失败: " + e.getMessage());
@@ -371,9 +346,9 @@ public class ImageController {
     /**
      * 根据ID删除图片
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping
     @Transactional
-    public Result<String> deleteImage(@PathVariable Long id) {
+    public Result<String> deleteImage(@RequestParam Long id) {
         try {
             Image image = imageMapper.selectById(id);
             if (image == null) {

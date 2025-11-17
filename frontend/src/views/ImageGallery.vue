@@ -5,7 +5,7 @@ const store = useGreenhouseStore()
 
 // 选择日期后，点击"搜索"才应用
 const pendingDate = ref(store.selectedDate)
-const showAll = ref(false) // 是否显示所有图片
+const showAll = ref(true) // 是否显示所有图片（默认显示所有图片）
 
 async function applySearch() {
   store.selectedDate = pendingDate.value
@@ -26,13 +26,13 @@ async function loadAbnormal() {
   showAll.value = true
 }
 
-// 组件挂载时加载今天的图片
+// 组件挂载时默认加载所有图片
 onMounted(() => {
   const today = new Date().toISOString().split('T')[0]
   store.selectedDate = today
   pendingDate.value = today
-  // 异步加载图片，不阻塞界面渲染
-  store.loadImagesByDate(today).catch(err => console.error('加载图片失败:', err))
+  // 异步加载所有图片，不阻塞界面渲染
+  store.loadAllImages().catch(err => console.error('加载图片失败:', err))
 })
 
 const images = computed(() => {
