@@ -1041,7 +1041,11 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   async function getAutoReportEnabled() {
     try {
       const data = await request.get('/ai/auto-report/enabled')
-      return data === true
+      // 处理可能的布尔值或字符串
+      if (data === true || data === 'true' || data === 1) {
+        return true
+      }
+      return false
     } catch (error) {
       console.error('获取自动报告开关失败:', error)
       return false
@@ -1054,7 +1058,9 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   async function setAutoReportEnabled(enabled) {
     try {
       const data = await request.put(`/ai/auto-report/enabled?enabled=${enabled}`)
-      return data === enabled
+      // 处理可能的布尔值或字符串
+      const result = data === true || data === 'true' || data === enabled
+      return result
     } catch (error) {
       console.error('设置自动报告开关失败:', error)
       return false
