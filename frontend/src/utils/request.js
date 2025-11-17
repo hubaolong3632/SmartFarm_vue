@@ -5,9 +5,11 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
 // 创建 axios 实例
+// 根据环境变量自动选择 baseURL
+// 开发环境: http://localhost:10002/api
+// 生产环境: https://smartfarmservice.00000.work/api
 const service = axios.create({
-  baseURL: 'http://localhost:10002/api', // 后端 API 基础路径
-  // baseURL: 'https://smartfarmservice.00000.work/api', // 后端 API 基础路径
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:10002/api', // 从环境变量读取，默认开发环境
   timeout: 10000, // 请求超时时间
   headers: {
     'Content-Type': 'application/json'

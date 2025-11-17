@@ -2,14 +2,42 @@ spring:
   application:
     name: greenhouse-api
 ---
+#spring:
+#
+#  # 数据源配置
+#  datasource:
+#    url: jdbc:mysql://localhost:3306/greenhouse_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+#    username: root
+#    password: 123456
+#    driver-class-name: com.mysql.jdbc.Driver
+#    hikari:
+#      maximum-pool-size: 20
+#      minimum-idle: 5
+#      connection-timeout: 30000
+#      idle-timeout: 600000
+#      max-lifetime: 1800000
+#
+##   MyBatis-Plus配置
+#  sql:
+#    init:
+#      mode: never  # 不自动执行初始化脚本
+#
+#  # Jackson配置
+#  jackson:
+#    time-zone: Asia/Shanghai
+#    date-format: yyyy-MM-dd HH:mm:ss
+#    default-property-inclusion: non_null
+
+---
+
 spring:
 
   # 数据源配置
   datasource:
-    url: jdbc:mysql://localhost:3306/greenhouse_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: root
-    password: 123456
-    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://mg_mysql.00000.work:3306/greenhouse_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: greenhouse_db
+    password: iYDrDXFMThm5yks8
+    driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -17,7 +45,7 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
 
-#   MyBatis-Plus配置
+  # MyBatis-Plus配置
   sql:
     init:
       mode: never  # 不自动执行初始化脚本
@@ -26,7 +54,10 @@ spring:
   jackson:
     time-zone: Asia/Shanghai
     date-format: yyyy-MM-dd HH:mm:ss
-    default-property-inclusion: non_null
+    default-property-inclusion: always  # 改为 always，确保所有字段都序列化（包括 null 值）
+
+---
+
 ---
 #
 #spring:
@@ -54,34 +85,6 @@ spring:
 #    time-zone: Asia/Shanghai
 #    date-format: yyyy-MM-dd HH:mm:ss
 #    default-property-inclusion: always  # 改为 always，确保所有字段都序列化（包括 null 值）
----
-#
-#spring:
-#
-#  # 数据源配置
-#  datasource:
-#    url: jdbc:mysql://mg_mysql.00000.work:3306/greenhouse_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-#    username: greenhouse_db
-#    password: iYDrDXFMThm5yks8
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-#    hikari:
-#      maximum-pool-size: 20
-#      minimum-idle: 5
-#      connection-timeout: 30000
-#      idle-timeout: 600000
-#      max-lifetime: 1800000
-#
-#  # MyBatis-Plus配置
-#  sql:
-#    init:
-#      mode: never  # 不自动执行初始化脚本
-#
-#  # Jackson配置
-#  jackson:
-#    time-zone: Asia/Shanghai
-#    date-format: yyyy-MM-dd HH:mm:ss
-#    default-property-inclusion: always  # 改为 always，确保所有字段都序列化（包括 null 值）
-
 ---
 # 服务器配置
 server:
@@ -117,7 +120,7 @@ mybatis-plus:
 # EMQX MQTT 配置
 emqx:
   broker-url: tcp://mqtt.00000.work:1883  # EMQX 服务器地址
-  client-id: springboot2  # 客户端ID
+  client-id: springboot-3  # 客户端ID
   username:  # MQTT 用户名（可选）
   password:  # MQTT 密码（可选）
   topic: text1  # 订阅的主题
