@@ -268,3 +268,19 @@ void loop() {
 3. **数据完整性**: 虽然字段都是可选的，但建议至少包含温度和湿度数据
 4. **字符编码**: 消息必须使用 UTF-8 编码
 
+time
+
+
+
+
+text1
+{
+
+"temperatureC": 1.5,
+"humidityPct": 21.3,
+"soilMoisturePct": 44.2,
+"lightLux": 3,
+"isRaining": false,
+"oxygenPct": 4.5,
+"co2Ppm": 30
+}
