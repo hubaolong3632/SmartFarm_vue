@@ -29,11 +29,16 @@ public class ExecutionLogController {
     private final ExecutionLogMapper executionLogMapper;
     
     /**
-     * 获取所有执行日志
+     * 获取所有执行日志（最新30条）
      */
     @GetMapping
     public Result<List<ExecutionLog>> getAll() {
-        return Result.success(executionLogMapper.selectList(null));
+        // 使用 MyBatis-Plus 的查询，按执行时间倒序，限制30条
+        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<ExecutionLog> queryWrapper = 
+            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
+        queryWrapper.orderByDesc("executed_at").last("LIMIT 30");
+        List<ExecutionLog> logs = executionLogMapper.selectList(queryWrapper);
+        return Result.success(logs);
     }
     
     /**

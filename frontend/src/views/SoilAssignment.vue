@@ -27,8 +27,8 @@ function ensureAssign(plot) {
 }
 function ensureSched(plot) {
   if (!schedForm[plot]) {
-    schedForm[plot] = { 
-      time: '12:00', 
+    schedForm[plot] = {
+      time: '12:00',
       times: 1,
       scheduleType: 'daily',
       dayOfWeek: null,
@@ -64,22 +64,22 @@ function addSchedule(plot) {
   const s = ensureSched(plot)
   const per = ensurePlotSelect(plot)
   if (!per.id) return
-  
+
   // 如果是每天或每周，需要时间
   if ((s.scheduleType === 'daily' || s.scheduleType === 'weekly') && !s.time) {
     return
   }
-  
+
   // 如果是每月，需要精确时间或时间
   if (s.scheduleType === 'monthly' && !s.scheduleDatetime && !s.time) {
     return
   }
-  
+
   store.addSchedule(plot, per.id, s.time, s.times, s.scheduleType, s.dayOfWeek, s.scheduleDatetime)
-  
+
   // 重置表单
-  schedForm[plot] = { 
-    time: '12:00', 
+  schedForm[plot] = {
+    time: '12:00',
     times: 1,
     scheduleType: 'daily',
     dayOfWeek: null,
@@ -197,6 +197,7 @@ function addSchedule(plot) {
               border
               stripe
               empty-text="暂无定时"
+              height="300"
             >
               <el-table-column prop="timeHHmm" label="时间" width="100" />
               <el-table-column label="执行周期" width="100">
@@ -241,7 +242,13 @@ function addSchedule(plot) {
 
     <el-card shadow="never" style="margin-top:16px;">
       <template #header>地块区执行日志</template>
-      <el-table :data="store.executionLogs" border size="small" empty-text="暂无日志">
+      <el-table 
+        :data="store.executionLogs" 
+        border 
+        size="small" 
+        empty-text="暂无日志"
+        height="600"
+      >
         <el-table-column label="时间" width="180">
           <template #default="{ row }">{{ new Date(row.time).toLocaleString() }}</template>
         </el-table-column>
@@ -254,7 +261,7 @@ function addSchedule(plot) {
         <el-table-column prop="executions" label="执行次数" width="100" />
         <el-table-column label="操作" width="120">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="store.executeFromLog(row.plot, row.recipeId, row.executions)">立即执行</el-button>
+            <el-button link type="primary" size="small" @click="store.executeFromLog(row.plot, row.recipeId, row.executions)">重新执行</el-button>
           </template>
         </el-table-column>
       </el-table>

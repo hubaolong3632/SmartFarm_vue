@@ -58,21 +58,42 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   const latest = computed(() => hourly.value[hourly.value.length - 1] || null)
   
   // 最近24小时执行统计（按小时聚合）
+  // 使用缓存优化，避免频繁重新计算
+  let executionsLast24Cache = null
+  let executionsLast24CacheTime = 0
   const executionsLast24 = computed(() => {
-    const now = new Date()
-    const start = new Date(now.getTime() - 23 * 3600_000)
+    // 如果缓存有效（5秒内），直接返回缓存
+    const now = Date.now()
+    if (executionsLast24Cache && (now - executionsLast24CacheTime) < 5000) {
+      return executionsLast24Cache
+    }
+    
+    const dateNow = new Date()
+    const start = new Date(dateNow.getTime() - 23 * 3600_000)
     const buckets = Array.from({ length: 24 }).map((_, i) => {
       const t = new Date(start.getTime() + i * 3600_000)
       return { time: t.toISOString(), count: 0 }
     })
-    executionLogs.value.forEach(log => {
+    
+    // 优化：如果日志数量很大，使用更高效的方式
+    const logs = executionLogs.value
+    const startTime = start.getTime()
+    const endTime = dateNow.getTime()
+    const hourMs = 3600_000
+    
+    for (let i = 0; i < logs.length; i++) {
+      const log = logs[i]
       const t = new Date(log.executedAt || log.time).getTime()
-      if (t < start.getTime() || t > now.getTime()) return
-      const idx = Math.floor((t - start.getTime()) / 3600_000)
+      if (t < startTime || t > endTime) continue
+      const idx = Math.floor((t - startTime) / hourMs)
       if (idx >= 0 && idx < buckets.length) {
         buckets[idx].count += Number(log.executions || 1)
       }
-    })
+    }
+    
+    // 更新缓存
+    executionsLast24Cache = buckets
+    executionsLast24CacheTime = now
     return buckets
   })
   
@@ -323,37 +344,52 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     try {
       const plots = Array.from({ length: numPlots.value }, (_, i) => i + 1)
       const schedules = {}
-      for (const plot of plots) {
+      
+      // 并行请求所有地块的定时计划，而不是串行（解决路由切换卡顿问题）
+      const requests = plots.map(async (plot) => {
         try {
           // 需要先获取地块ID，这里假设 plot number 就是 plotId
           const data = await request.get('/plots/schedules', { plotId: plot })
           if (data && Array.isArray(data)) {
-            schedules[plot] = data.map(item => {
-              // 处理时间格式：scheduleTime 可能是 LocalTime 格式 (HH:mm:ss) 或字符串
-              let timeHHmm = item.timeHHmm || item.scheduleTime
-              if (timeHHmm && typeof timeHHmm === 'string' && timeHHmm.includes(':')) {
-                // 如果是 "HH:mm:ss" 格式，只取前5个字符 "HH:mm"
-                if (timeHHmm.length > 5) {
-                  timeHHmm = timeHHmm.substring(0, 5)
+            return {
+              plot,
+              schedules: data.map(item => {
+                // 处理时间格式：scheduleTime 可能是 LocalTime 格式 (HH:mm:ss) 或字符串
+                let timeHHmm = item.timeHHmm || item.scheduleTime
+                if (timeHHmm && typeof timeHHmm === 'string' && timeHHmm.includes(':')) {
+                  // 如果是 "HH:mm:ss" 格式，只取前5个字符 "HH:mm"
+                  if (timeHHmm.length > 5) {
+                    timeHHmm = timeHHmm.substring(0, 5)
+                  }
                 }
-              }
-              return {
-                id: String(item.id),
-                timeHHmm: timeHHmm || '',
-                recipeId: String(item.recipeId),
-                executions: Number(item.executions || 1),
-                scheduleType: item.scheduleType || 'daily',
-                dayOfWeek: item.dayOfWeek !== null && item.dayOfWeek !== undefined ? item.dayOfWeek : null,
-                scheduleDatetime: item.scheduleDatetime || null,
-              }
-            })
+                return {
+                  id: String(item.id),
+                  timeHHmm: timeHHmm || '',
+                  recipeId: String(item.recipeId),
+                  executions: Number(item.executions || 1),
+                  scheduleType: item.scheduleType || 'daily',
+                  dayOfWeek: item.dayOfWeek !== null && item.dayOfWeek !== undefined ? item.dayOfWeek : null,
+                  scheduleDatetime: item.scheduleDatetime || null,
+                }
+              })
+            }
           } else {
-            schedules[plot] = []
+            return { plot, schedules: [] }
           }
         } catch (error) {
-          schedules[plot] = []
+          console.error(`加载地块${plot}的定时计划失败:`, error)
+          return { plot, schedules: [] }
         }
-      }
+      })
+      
+      // 等待所有请求并行完成
+      const results = await Promise.all(requests)
+      
+      // 将结果合并到 schedules 对象中
+      results.forEach(({ plot, schedules: plotScheds }) => {
+        schedules[plot] = plotScheds
+      })
+      
       plotSchedules.value = schedules
     } catch (error) {
       console.error('加载定时计划失败:', error)
