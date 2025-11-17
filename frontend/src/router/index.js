@@ -40,6 +40,12 @@ const router = createRouter({
       // AI自动化分析：图片分析、传感器数据分析、自动化建议、综合报告
       component: () => import('../views/AiAnalysis.vue'),
     },
+    {
+      path: '/ai-reports',
+      name: 'aiReports',
+      // AI分析报告历史：查看和管理保存的报告
+      component: () => import('../views/AiReportHistory.vue'),
+    },
   ],
 })
 

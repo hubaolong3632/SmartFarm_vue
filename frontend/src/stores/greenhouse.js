@@ -975,6 +975,92 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     }
   }
   
+  // ========== AI报告管理 ==========
+  
+  /**
+   * 保存AI报告
+   */
+  async function saveAiReport(reportData) {
+    try {
+      const data = await request.post('/ai/reports', reportData)
+      return data
+    } catch (error) {
+      console.error('保存AI报告失败:', error)
+      return null
+    }
+  }
+  
+  /**
+   * 获取所有AI报告
+   */
+  async function getAllAiReports(reportType = null, startDate = null, endDate = null) {
+    try {
+      let url = '/ai/reports'
+      const params = []
+      if (reportType) params.push(`reportType=${reportType}`)
+      if (startDate) params.push(`startDate=${startDate}`)
+      if (endDate) params.push(`endDate=${endDate}`)
+      if (params.length > 0) url += '?' + params.join('&')
+      const data = await request.get(url)
+      return data
+    } catch (error) {
+      console.error('获取AI报告失败:', error)
+      return null
+    }
+  }
+  
+  /**
+   * 根据ID获取AI报告
+   */
+  async function getAiReportById(id) {
+    try {
+      const data = await request.get(`/ai/reports/${id}`)
+      return data
+    } catch (error) {
+      console.error('获取AI报告失败:', error)
+      return null
+    }
+  }
+  
+  /**
+   * 删除AI报告
+   */
+  async function deleteAiReport(id) {
+    try {
+      await request.delete(`/ai/reports/${id}`)
+      return true
+    } catch (error) {
+      console.error('删除AI报告失败:', error)
+      return false
+    }
+  }
+  
+  /**
+   * 获取自动报告开关状态
+   */
+  async function getAutoReportEnabled() {
+    try {
+      const data = await request.get('/ai/auto-report/enabled')
+      return data === true
+    } catch (error) {
+      console.error('获取自动报告开关失败:', error)
+      return false
+    }
+  }
+  
+  /**
+   * 设置自动报告开关
+   */
+  async function setAutoReportEnabled(enabled) {
+    try {
+      const data = await request.put(`/ai/auto-report/enabled?enabled=${enabled}`)
+      return data === enabled
+    } catch (error) {
+      console.error('设置自动报告开关失败:', error)
+      return false
+    }
+  }
+  
   // ========== 导出 ==========
   
   return {
@@ -1047,5 +1133,15 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     getAutomationAdvice,
     generateComprehensiveReport,
     getAutoExecutionAdvice,
+    
+    // AI报告管理
+    saveAiReport,
+    getAllAiReports,
+    getAiReportById,
+    deleteAiReport,
+    
+    // AI自动报告
+    getAutoReportEnabled,
+    setAutoReportEnabled,
   }
 })
