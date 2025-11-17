@@ -35,7 +35,7 @@ public class AlertController {
     public Result<List<Alert>> getUnread() {
         return Result.success(alertMapper.findByIsReadFalseOrderByCreatedAtDesc());
     }
-    
+//
     /**
      * 获取指定级别的报警
      */
