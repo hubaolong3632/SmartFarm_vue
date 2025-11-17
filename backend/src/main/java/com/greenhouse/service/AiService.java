@@ -60,7 +60,7 @@ public class AiService {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", model);
             requestBody.put("messages", Arrays.asList(
-                Map.of("role", "system", "content", "你是一个专业的智能温室管理AI助手，擅长分析温室数据、生成报告和提供自动化控制建议,所有的。但是你要注意1.所有的回答都要使用表格或图标的方式回答 2.回答的内容不能太单调 3.多有图标，少用文字回答，每隔都要用总结"),
+                Map.of("role", "system", "content", "你是一个专业的智能温室管理AI助手，擅长分析温室数据、生成报告和提供自动化控制建议。所有报告请尽量用 Markdown 表格展现关键数据，多使用图标、少用纯文字，并在每个小节结尾给出简短总结。"),
                 Map.of("role", "user", "content", prompt)
             ));
             requestBody.put("temperature", 0.7);

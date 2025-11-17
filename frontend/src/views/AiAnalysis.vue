@@ -104,18 +104,24 @@ async function toggleAutoReport(newValue) {
 // 分析图片集
 async function handleAnalyzeImages() {
   loading.value.images = true
+  imageReport.value = ''
   try {
     const startDate = dateRange.value && dateRange.value.length > 0 ? formatDate(dateRange.value[0]) : null
     const endDate = dateRange.value && dateRange.value.length > 1 ? formatDate(dateRange.value[1]) : null
-    const report = await store.analyzeImages(30, startDate, endDate)
-    if (report) {
-      imageReport.value = report
-      ElMessage.success('图片分析完成')
-    } else {
-      ElMessage.error('图片分析失败')
-    }
+    await startSseRequest('/ai/analyze-images-stream', {
+      limit: 30,
+      startDate,
+      endDate
+    }, {
+      onChunk: data => {
+        if (data?.content) {
+          imageReport.value += data.content
+        }
+      }
+    })
+    ElMessage.success('图片分析完成')
   } catch (error) {
-    ElMessage.error('图片分析失败: ' + error.message)
+    ElMessage.error('图片分析失败: ' + (error?.message || '未知错误'))
   } finally {
     loading.value.images = false
   }
@@ -152,18 +158,24 @@ async function saveImageReport() {
 // 分析传感器数据
 async function handleAnalyzeSensorData() {
   loading.value.sensor = true
+  sensorReport.value = ''
   try {
     const startDate = dateRange.value && dateRange.value.length > 0 ? formatDate(dateRange.value[0]) : null
     const endDate = dateRange.value && dateRange.value.length > 1 ? formatDate(dateRange.value[1]) : null
-    const report = await store.analyzeSensorData(30, startDate, endDate)
-    if (report) {
-      sensorReport.value = report
-      ElMessage.success('传感器数据分析完成')
-    } else {
-      ElMessage.error('传感器数据分析失败')
-    }
+    await startSseRequest('/ai/analyze-sensor-data-stream', {
+      limit: 30,
+      startDate,
+      endDate
+    }, {
+      onChunk: data => {
+        if (data?.content) {
+          sensorReport.value += data.content
+        }
+      }
+    })
+    ElMessage.success('传感器数据分析完成')
   } catch (error) {
-    ElMessage.error('传感器数据分析失败: ' + error.message)
+    ElMessage.error('传感器数据分析失败: ' + (error?.message || '未知错误'))
   } finally {
     loading.value.sensor = false
   }
@@ -200,16 +212,18 @@ async function saveSensorReport() {
 // 获取自动化建议
 async function handleGetAutomationAdvice() {
   loading.value.automation = true
+  automationAdvice.value = ''
   try {
-    const advice = await store.getAutomationAdvice()
-    if (advice) {
-      automationAdvice.value = advice
-      ElMessage.success('自动化建议生成完成')
-    } else {
-      ElMessage.error('获取自动化建议失败')
-    }
+    await startSseRequest('/ai/automation-advice-stream', {}, {
+      onChunk: data => {
+        if (data?.content) {
+          automationAdvice.value += data.content
+        }
+      }
+    })
+    ElMessage.success('自动化建议生成完成')
   } catch (error) {
-    ElMessage.error('获取自动化建议失败: ' + error.message)
+    ElMessage.error('获取自动化建议失败: ' + (error?.message || '未知错误'))
   } finally {
     loading.value.automation = false
   }
@@ -244,18 +258,23 @@ async function saveAutomationReport() {
 // 生成综合报告
 async function handleGenerateComprehensiveReport() {
   loading.value.comprehensive = true
+  comprehensiveReport.value = ''
   try {
     const startDate = dateRange.value && dateRange.value.length > 0 ? formatDate(dateRange.value[0]) : null
     const endDate = dateRange.value && dateRange.value.length > 1 ? formatDate(dateRange.value[1]) : null
-    const report = await store.generateComprehensiveReport(startDate, endDate)
-    if (report) {
-      comprehensiveReport.value = report
-      ElMessage.success('综合报告生成完成')
-    } else {
-      ElMessage.error('生成综合报告失败')
-    }
+    await startSseRequest('/ai/comprehensive-report-stream', {
+      startDate,
+      endDate
+    }, {
+      onChunk: data => {
+        if (data?.content) {
+          comprehensiveReport.value += data.content
+        }
+      }
+    })
+    ElMessage.success('综合报告生成完成')
   } catch (error) {
-    ElMessage.error('生成综合报告失败: ' + error.message)
+    ElMessage.error('生成综合报告失败: ' + (error?.message || '未知错误'))
   } finally {
     loading.value.comprehensive = false
   }
@@ -292,16 +311,33 @@ async function saveComprehensiveReport() {
 // 获取AI自动执行建议
 async function handleGetAutoExecutionAdvice() {
   loading.value.autoExecution = true
+  autoExecutionAdvice.value = null
+  let summaryContent = ''
   try {
-    const advice = await store.getAutoExecutionAdvice()
-    if (advice) {
-      autoExecutionAdvice.value = advice
-      ElMessage.success('AI自动执行建议获取完成')
-    } else {
-      ElMessage.error('获取AI自动执行建议失败')
-    }
+    await startSseRequest('/ai/auto-execution-advice-stream', {}, {
+      onChunk: data => {
+        if (data?.content) {
+          summaryContent += data.content
+          autoExecutionAdvice.value = {
+            summary: summaryContent,
+            actions: []
+          }
+        }
+      },
+      onComplete: data => {
+        if (data?.data) {
+          autoExecutionAdvice.value = data.data
+        } else if (summaryContent) {
+          autoExecutionAdvice.value = {
+            summary: summaryContent,
+            actions: []
+          }
+        }
+      }
+    })
+    ElMessage.success('AI自动执行建议获取完成')
   } catch (error) {
-    ElMessage.error('获取AI自动执行建议失败: ' + error.message)
+    ElMessage.error('获取AI自动执行建议失败: ' + (error?.message || '未知错误'))
   } finally {
     loading.value.autoExecution = false
   }
@@ -397,6 +433,70 @@ const autoExecutionAdviceHtml = computed(() => {
   return renderMarkdown(autoExecutionAdvice.value.summary)
 })
 
+const apiBase = import.meta.env.VITE_API_BASE_URL || '/api'
+
+function buildSseUrl(path, params = {}) {
+  const base = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase
+  const finalPath = path.startsWith('/') ? path : `/${path}`
+  const url = new URL(`${base}${finalPath}`, window.location.origin)
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      url.searchParams.append(key, value)
+    }
+  })
+  return url.toString()
+}
+
+function safeJsonParse(text) {
+  if (!text) return null
+  try {
+    return JSON.parse(text)
+  } catch (error) {
+    return { content: text }
+  }
+}
+
+function startSseRequest(path, params = {}, handlers = {}) {
+  return new Promise((resolve, reject) => {
+    const url = buildSseUrl(path, params)
+    const eventSource = new EventSource(url)
+
+    const cleanup = () => {
+      eventSource.close()
+    }
+
+    eventSource.addEventListener('start', event => {
+      const data = safeJsonParse(event.data)
+      handlers.onStart?.(data)
+    })
+
+    eventSource.addEventListener('chunk', event => {
+      const data = safeJsonParse(event.data)
+      handlers.onChunk?.(data)
+    })
+
+    eventSource.addEventListener('complete', event => {
+      const data = safeJsonParse(event.data)
+      handlers.onComplete?.(data)
+      cleanup()
+      resolve(data)
+    })
+
+    eventSource.addEventListener('error', event => {
+      const data = safeJsonParse(event.data)
+      handlers.onError?.(data)
+      cleanup()
+      reject(data?.error ? new Error(data.error) : new Error('分析失败'))
+    })
+
+    eventSource.onerror = () => {
+      handlers.onError?.()
+      cleanup()
+      reject(new Error('SSE 连接异常'))
+    }
+  })
+}
+
 // 一键分析（流式）
 const analyzingAll = ref(false)
 const analyzeProgress = ref({
@@ -429,7 +529,7 @@ async function handleAnalyzeAll() {
     const startDate = dateRange.value && dateRange.value.length > 0 ? formatDate(dateRange.value[0]) : null
     const endDate = dateRange.value && dateRange.value.length > 1 ? formatDate(dateRange.value[1]) : null
     
-    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:10002/api'
+    const baseURL = apiBase
     
     // 同时调用5个流式接口
     const eventSources = []
