@@ -195,24 +195,8 @@ public class ImageController {
             image.setPlotId(null);
         }
 
-        // 判断是否异常：只有温度高于舒适温度（35°C）或土壤湿度低于10%才标记为异常
-        boolean isAbnormal = false;
-        StringBuilder abnormalReason = new StringBuilder();
-        // 温度高于舒适温度（高阈值，默认35°C）
-        if (image.getTemperatureC() != null &&
-            image.getTemperatureC().compareTo(new BigDecimal("35")) > 0) {
-            isAbnormal = true;
-            abnormalReason.append("温度异常");
-        }
-        // 土壤湿度低于10%
-        if (image.getSoilMoisturePct() != null &&
-            image.getSoilMoisturePct().compareTo(new BigDecimal("10")) < 0) {
-            isAbnormal = true;
-            if (abnormalReason.length() > 0) abnormalReason.append(", ");
-            abnormalReason.append("土壤湿度异常");
-        }
-        image.setIsAbnormal(isAbnormal);
-        image.setAbnormalReason(abnormalReason.length() > 0 ? abnormalReason.toString() : null);
+        // 判断是否异常
+        checkAndSetAbnormalStatus(image);
         image.setCreatedAt(new Date());
 
         imageMapper.insert(image);
@@ -288,24 +272,8 @@ public class ImageController {
                 image.setPlotId(null);
             }
             
-            // 判断是否异常：只有温度高于舒适温度（35°C）或土壤湿度低于10%才标记为异常
-            boolean isAbnormal = false;
-            StringBuilder abnormalReason = new StringBuilder();
-            // 温度高于舒适温度（高阈值，默认35°C）
-            if (dto.getTemperatureC() != null && 
-                dto.getTemperatureC().compareTo(new BigDecimal("35")) > 0) {
-                isAbnormal = true;
-                abnormalReason.append("温度异常");
-            }
-            // 土壤湿度低于10%
-            if (dto.getSoilMoisturePct() != null && 
-                dto.getSoilMoisturePct().compareTo(new BigDecimal("10")) < 0) {
-                isAbnormal = true;
-                if (abnormalReason.length() > 0) abnormalReason.append(", ");
-                abnormalReason.append("土壤湿度异常");
-            }
-            image.setIsAbnormal(isAbnormal);
-            image.setAbnormalReason(abnormalReason.length() > 0 ? abnormalReason.toString() : null);
+            // 判断是否异常
+            checkAndSetAbnormalStatus(image);
             image.setCreatedAt(new Date());
             
             imageMapper.insert(image);
@@ -373,6 +341,86 @@ public class ImageController {
         } catch (Exception e) {
             log.error("删除图片失败: {}", e.getMessage(), e);
             return Result.error("删除图片失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 检查并设置图片的异常状态
+     * 根据传感器数据判断是否存在异常情况
+     * 
+     * @param image 图片对象
+     */
+    private void checkAndSetAbnormalStatus(Image image) {
+        boolean isAbnormal = false;
+        StringBuilder abnormalReason = new StringBuilder();
+        
+        // 1. 温度异常判断
+        if (image.getTemperatureC() != null) {
+            BigDecimal temp = image.getTemperatureC();
+            // 温度过低（低于10°C）
+            if (temp.compareTo(new BigDecimal("10")) < 0) {
+                isAbnormal = true;
+                abnormalReason.append("温度过低");
+            }
+            // 温度过高（高于35°C）
+            else if (temp.compareTo(new BigDecimal("35")) > 0) {
+                isAbnormal = true;
+                if (abnormalReason.length() > 0) abnormalReason.append(", ");
+                abnormalReason.append("温度过高");
+            }
+        }
+        
+        // 2. 土壤湿度异常判断
+        if (image.getSoilMoisturePct() != null) {
+            BigDecimal soilMoisture = image.getSoilMoisturePct();
+            // 土壤湿度过低（低于10%）
+            if (soilMoisture.compareTo(new BigDecimal("10")) < 0) {
+                isAbnormal = true;
+                if (abnormalReason.length() > 0) abnormalReason.append(", ");
+                abnormalReason.append("土壤湿度过低");
+            }
+            // 土壤湿度过高（高于90%）
+            else if (soilMoisture.compareTo(new BigDecimal("90")) > 0) {
+                isAbnormal = true;
+                if (abnormalReason.length() > 0) abnormalReason.append(", ");
+                abnormalReason.append("土壤湿度过高");
+            }
+        }
+        
+        // 3. 空气湿度异常判断
+        if (image.getHumidityPct() != null) {
+            BigDecimal humidity = image.getHumidityPct();
+            // 湿度过低（低于30%）
+            if (humidity.compareTo(new BigDecimal("30")) < 0) {
+                isAbnormal = true;
+                if (abnormalReason.length() > 0) abnormalReason.append(", ");
+                abnormalReason.append("空气湿度过低");
+            }
+            // 湿度过高（高于90%）
+            else if (humidity.compareTo(new BigDecimal("90")) > 0) {
+                isAbnormal = true;
+                if (abnormalReason.length() > 0) abnormalReason.append(", ");
+                abnormalReason.append("空气湿度过高");
+            }
+        }
+        
+        // 4. 氧气异常判断
+        if (image.getOxygenPct() != null) {
+            BigDecimal oxygen = image.getOxygenPct();
+            // 氧气含量过低（低于18%）
+            if (oxygen.compareTo(new BigDecimal("18")) < 0) {
+                isAbnormal = true;
+                if (abnormalReason.length() > 0) abnormalReason.append(", ");
+                abnormalReason.append("氧气含量过低");
+            }
+        }
+        
+        // 设置异常状态和原因
+        image.setIsAbnormal(isAbnormal);
+        image.setAbnormalReason(abnormalReason.length() > 0 ? abnormalReason.toString() : null);
+        
+        if (isAbnormal) {
+            log.warn("检测到异常情况: {}", abnormalReason.toString());
         }
     }
 }
