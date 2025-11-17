@@ -52,7 +52,7 @@ public class AiService {
     private String callAiApi(String prompt) {
         try {
             String url = baseUrl + "/v1/chat/completions";
-            
+//
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(apiKey);
