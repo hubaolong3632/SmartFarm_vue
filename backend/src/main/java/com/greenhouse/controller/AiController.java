@@ -15,8 +15,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -39,6 +41,100 @@ public class AiController {
     private final ExecutionLogMapper executionLogMapper;
     private final AutomationSettingMapper automationSettingMapper;
     private final AiReportMapper aiReportMapper;
+    
+    /**
+     * 分析图片集并生成报告（流式）
+     */
+    @GetMapping(value = "/analyze-images-stream", produces = "text/event-stream")
+    public SseEmitter analyzeImagesStream(
+            @RequestParam(value = "limit", defaultValue = "30") Integer limit,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate) {
+        
+        SseEmitter emitter = new SseEmitter(300000L); // 5分钟超时
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 获取图片数据
+                List<Image> images = imageMapper.selectList(null);
+                
+                // 根据日期范围过滤
+                if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
+                    try {
+                        LocalDate start = LocalDate.parse(startDate);
+                        LocalDate end = LocalDate.parse(endDate);
+                        Date startDateTime = Date.from(start.atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        Date endDateTime = Date.from(end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        
+                        images = images.stream()
+                            .filter(img -> {
+                                if (img.getRecordTime() == null) return false;
+                                return img.getRecordTime().after(startDateTime) && img.getRecordTime().before(endDateTime);
+                            })
+                            .collect(Collectors.toList());
+                    } catch (Exception e) {
+                        log.warn("日期解析失败，使用全部数据: {}", e.getMessage());
+                    }
+                }
+                
+                // 排序
+                images.sort((a, b) -> {
+                    if (a.getRecordTime() == null || b.getRecordTime() == null) return 0;
+                    return b.getRecordTime().compareTo(a.getRecordTime());
+                });
+                
+                List<Image> recentImages = images.stream()
+                    .limit(limit)
+                    .collect(Collectors.toList());
+                
+                // 转换为Map格式
+                List<Map<String, Object>> imageData = recentImages.stream().map(img -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("recordTime", img.getRecordTime());
+                    map.put("temperatureC", img.getTemperatureC());
+                    map.put("humidityPct", img.getHumidityPct());
+                    map.put("soilMoisturePct", img.getSoilMoisturePct());
+                    map.put("lightLux", img.getLightLux());
+                    map.put("isAbnormal", img.getIsAbnormal());
+                    map.put("abnormalReason", img.getAbnormalReason());
+                    return map;
+                }).collect(Collectors.toList());
+                
+                emitter.send(SseEmitter.event().name("start").data("{\"status\":\"start\"}"));
+                
+                aiService.analyzeImagesStream(imageData,
+                    chunk -> {
+                        try {
+                            emitter.send(SseEmitter.event()
+                                .name("chunk")
+                                .data("{\"content\":\"" + 
+                                    chunk.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "") + "\"}"));
+                        } catch (Exception e) {
+                            log.error("发送流数据失败", e);
+                        }
+                    },
+                    () -> {
+                        try {
+                            emitter.send(SseEmitter.event().name("complete").data("{\"status\":\"complete\"}"));
+                            emitter.complete();
+                        } catch (Exception e) {
+                            emitter.completeWithError(e);
+                        }
+                    });
+                
+            } catch (Exception e) {
+                log.error("分析图片失败", e);
+                try {
+                    emitter.send(SseEmitter.event().name("error").data("{\"error\":\"" + e.getMessage() + "\"}"));
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    emitter.completeWithError(ex);
+                }
+            }
+        });
+        
+        return emitter;
+    }
     
     /**
      * 分析图片集并生成报告
@@ -101,6 +197,100 @@ public class AiController {
             log.error("分析图片失败: {}", e.getMessage(), e);
             return Result.error("分析图片失败: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 分析传感器数据并生成报告（流式）
+     */
+    @GetMapping(value = "/analyze-sensor-data-stream", produces = "text/event-stream")
+    public SseEmitter analyzeSensorDataStream(
+            @RequestParam(value = "limit", defaultValue = "30") Integer limit,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate) {
+        
+        SseEmitter emitter = new SseEmitter(300000L);
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 获取传感器数据
+                List<SensorData> sensorDataList = sensorDataMapper.selectList(null);
+                
+                // 根据日期范围过滤
+                if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
+                    try {
+                        LocalDate start = LocalDate.parse(startDate);
+                        LocalDate end = LocalDate.parse(endDate);
+                        Date startDateTime = Date.from(start.atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        Date endDateTime = Date.from(end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        
+                        sensorDataList = sensorDataList.stream()
+                            .filter(data -> {
+                                if (data.getRecordTime() == null) return false;
+                                return data.getRecordTime().after(startDateTime) && data.getRecordTime().before(endDateTime);
+                            })
+                            .collect(Collectors.toList());
+                    } catch (Exception e) {
+                        log.warn("日期解析失败，使用全部数据: {}", e.getMessage());
+                    }
+                }
+                
+                // 排序
+                sensorDataList.sort((a, b) -> {
+                    if (a.getRecordTime() == null || b.getRecordTime() == null) return 0;
+                    return b.getRecordTime().compareTo(a.getRecordTime());
+                });
+                
+                List<SensorData> recentData = sensorDataList.stream()
+                    .limit(limit)
+                    .collect(Collectors.toList());
+                
+                // 转换为Map格式
+                List<Map<String, Object>> dataList = recentData.stream().map(data -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("recordTime", data.getRecordTime());
+                    map.put("temperatureC", data.getTemperatureC());
+                    map.put("humidityPct", data.getHumidityPct());
+                    map.put("soilMoisturePct", data.getSoilMoisturePct());
+                    map.put("lightLux", data.getLightLux());
+                    map.put("oxygenPct", data.getOxygenPct());
+                    map.put("co2Ppm", data.getCo2Ppm());
+                    return map;
+                }).collect(Collectors.toList());
+                
+                emitter.send(SseEmitter.event().name("start").data("{\"status\":\"start\"}"));
+                
+                aiService.analyzeSensorDataStream(dataList,
+                    chunk -> {
+                        try {
+                            emitter.send(SseEmitter.event()
+                                .name("chunk")
+                                .data("{\"content\":\"" + 
+                                    chunk.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "") + "\"}"));
+                        } catch (Exception e) {
+                            log.error("发送流数据失败", e);
+                        }
+                    },
+                    () -> {
+                        try {
+                            emitter.send(SseEmitter.event().name("complete").data("{\"status\":\"complete\"}"));
+                            emitter.complete();
+                        } catch (Exception e) {
+                            emitter.completeWithError(e);
+                        }
+                    });
+                
+            } catch (Exception e) {
+                log.error("分析传感器数据失败", e);
+                try {
+                    emitter.send(SseEmitter.event().name("error").data("{\"error\":\"" + e.getMessage() + "\"}"));
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    emitter.completeWithError(ex);
+                }
+            }
+        });
+        
+        return emitter;
     }
     
     /**
@@ -167,6 +357,87 @@ public class AiController {
     }
     
     /**
+     * 生成自动化控制建议（流式）
+     */
+    @GetMapping(value = "/automation-advice-stream", produces = "text/event-stream")
+    public SseEmitter getAutomationAdviceStream() {
+        SseEmitter emitter = new SseEmitter(300000L);
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 获取最新传感器数据
+                SensorData latest = sensorDataMapper.selectList(null).stream()
+                    .max(Comparator.comparing(SensorData::getRecordTime))
+                    .orElse(null);
+                
+                if (latest == null) {
+                    emitter.send(SseEmitter.event().name("error").data("{\"error\":\"暂无传感器数据\"}"));
+                    emitter.complete();
+                    return;
+                }
+                
+                // 获取自动化设置
+                var automationSettings = automationSettingMapper.selectList(null);
+                Map<String, Object> settings = new HashMap<>();
+                for (var setting : automationSettings) {
+                    String key = setting.getSettingKey();
+                    String value = setting.getSettingValue();
+                    try {
+                        if (value.contains(".")) {
+                            settings.put(key, Double.parseDouble(value));
+                        } else {
+                            settings.put(key, Integer.parseInt(value));
+                        }
+                    } catch (NumberFormatException e) {
+                        settings.put(key, value);
+                    }
+                }
+                
+                Map<String, Object> currentData = new HashMap<>();
+                currentData.put("temperatureC", latest.getTemperatureC());
+                currentData.put("humidityPct", latest.getHumidityPct());
+                currentData.put("soilMoisturePct", latest.getSoilMoisturePct());
+                currentData.put("lightLux", latest.getLightLux());
+                currentData.put("oxygenPct", latest.getOxygenPct());
+                currentData.put("co2Ppm", latest.getCo2Ppm());
+                
+                emitter.send(SseEmitter.event().name("start").data("{\"status\":\"start\"}"));
+                
+                aiService.generateAutomationAdviceStream(currentData, settings,
+                    chunk -> {
+                        try {
+                            emitter.send(SseEmitter.event()
+                                .name("chunk")
+                                .data("{\"content\":\"" + 
+                                    chunk.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "") + "\"}"));
+                        } catch (Exception e) {
+                            log.error("发送流数据失败", e);
+                        }
+                    },
+                    () -> {
+                        try {
+                            emitter.send(SseEmitter.event().name("complete").data("{\"status\":\"complete\"}"));
+                            emitter.complete();
+                        } catch (Exception e) {
+                            emitter.completeWithError(e);
+                        }
+                    });
+                
+            } catch (Exception e) {
+                log.error("获取自动化建议失败", e);
+                try {
+                    emitter.send(SseEmitter.event().name("error").data("{\"error\":\"" + e.getMessage() + "\"}"));
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    emitter.completeWithError(ex);
+                }
+            }
+        });
+        
+        return emitter;
+    }
+    
+    /**
      * 生成自动化控制建议
      */
     @PostMapping("/automation-advice")
@@ -214,6 +485,156 @@ public class AiController {
             log.error("获取自动化建议失败: {}", e.getMessage(), e);
             return Result.error("获取自动化建议失败: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 生成综合报告（流式）
+     */
+    @GetMapping(value = "/comprehensive-report-stream", produces = "text/event-stream")
+    public SseEmitter generateComprehensiveReportStream(
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate) {
+        
+        SseEmitter emitter = new SseEmitter(300000L);
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 获取图片数据
+                List<Image> images = imageMapper.selectList(null);
+                
+                // 根据日期范围过滤
+                if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
+                    try {
+                        LocalDate start = LocalDate.parse(startDate);
+                        LocalDate end = LocalDate.parse(endDate);
+                        Date startDateTime = Date.from(start.atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        Date endDateTime = Date.from(end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        
+                        images = images.stream()
+                            .filter(img -> {
+                                if (img.getRecordTime() == null) return false;
+                                return img.getRecordTime().after(startDateTime) && img.getRecordTime().before(endDateTime);
+                            })
+                            .collect(Collectors.toList());
+                    } catch (Exception e) {
+                        log.warn("日期解析失败，使用全部数据: {}", e.getMessage());
+                    }
+                }
+                
+                images.sort((a, b) -> {
+                    if (a.getRecordTime() == null || b.getRecordTime() == null) return 0;
+                    return b.getRecordTime().compareTo(a.getRecordTime());
+                });
+                List<Map<String, Object>> imageData = images.stream().limit(10).map(img -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("recordTime", img.getRecordTime());
+                    map.put("temperatureC", img.getTemperatureC());
+                    map.put("humidityPct", img.getHumidityPct());
+                    map.put("soilMoisturePct", img.getSoilMoisturePct());
+                    map.put("isAbnormal", img.getIsAbnormal());
+                    return map;
+                }).collect(Collectors.toList());
+                
+                // 获取传感器数据
+                List<SensorData> sensorDataList = sensorDataMapper.selectList(null);
+                
+                if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
+                    try {
+                        LocalDate start = LocalDate.parse(startDate);
+                        LocalDate end = LocalDate.parse(endDate);
+                        Date startDateTime = Date.from(start.atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        Date endDateTime = Date.from(end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        
+                        sensorDataList = sensorDataList.stream()
+                            .filter(data -> {
+                                if (data.getRecordTime() == null) return false;
+                                return data.getRecordTime().after(startDateTime) && data.getRecordTime().before(endDateTime);
+                            })
+                            .collect(Collectors.toList());
+                    } catch (Exception e) {
+                        log.warn("日期解析失败，使用全部数据: {}", e.getMessage());
+                    }
+                }
+                
+                sensorDataList.sort((a, b) -> {
+                    if (a.getRecordTime() == null || b.getRecordTime() == null) return 0;
+                    return b.getRecordTime().compareTo(a.getRecordTime());
+                });
+                List<Map<String, Object>> sensorData = sensorDataList.stream().limit(10).map(data -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("recordTime", data.getRecordTime());
+                    map.put("temperatureC", data.getTemperatureC());
+                    map.put("humidityPct", data.getHumidityPct());
+                    map.put("soilMoisturePct", data.getSoilMoisturePct());
+                    map.put("lightLux", data.getLightLux());
+                    return map;
+                }).collect(Collectors.toList());
+                
+                // 获取执行日志
+                var executionLogs = executionLogMapper.selectList(null);
+                executionLogs.sort((a, b) -> {
+                    if (a.getExecutedAt() == null || b.getExecutedAt() == null) return 0;
+                    return b.getExecutedAt().compareTo(a.getExecutedAt());
+                });
+                List<Map<String, Object>> logData = executionLogs.stream().limit(10).map(log -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("executedAt", log.getExecutedAt());
+                    map.put("plotId", log.getPlotId());
+                    map.put("executions", log.getExecutions());
+                    return map;
+                }).collect(Collectors.toList());
+                
+                // 获取自动化设置
+                var automationSettings = automationSettingMapper.selectList(null);
+                Map<String, Object> settings = new HashMap<>();
+                for (var setting : automationSettings) {
+                    String key = setting.getSettingKey();
+                    String value = setting.getSettingValue();
+                    try {
+                        if (value.contains(".")) {
+                            settings.put(key, Double.parseDouble(value));
+                        } else {
+                            settings.put(key, Integer.parseInt(value));
+                        }
+                    } catch (NumberFormatException e) {
+                        settings.put(key, value);
+                    }
+                }
+                
+                emitter.send(SseEmitter.event().name("start").data("{\"status\":\"start\"}"));
+                
+                aiService.generateComprehensiveReportStream(imageData, sensorData, logData, settings,
+                    chunk -> {
+                        try {
+                            emitter.send(SseEmitter.event()
+                                .name("chunk")
+                                .data("{\"content\":\"" + 
+                                    chunk.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "") + "\"}"));
+                        } catch (Exception e) {
+                            log.error("发送流数据失败", e);
+                        }
+                    },
+                    () -> {
+                        try {
+                            emitter.send(SseEmitter.event().name("complete").data("{\"status\":\"complete\"}"));
+                            emitter.complete();
+                        } catch (Exception e) {
+                            emitter.completeWithError(e);
+                        }
+                    });
+                
+            } catch (Exception e) {
+                log.error("生成综合报告失败", e);
+                try {
+                    emitter.send(SseEmitter.event().name("error").data("{\"error\":\"" + e.getMessage() + "\"}"));
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    emitter.completeWithError(ex);
+                }
+            }
+        });
+        
+        return emitter;
     }
     
     /**
@@ -335,6 +756,115 @@ public class AiController {
             log.error("生成综合报告失败: {}", e.getMessage(), e);
             return Result.error("生成综合报告失败: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 获取AI自动执行建议（流式）
+     */
+    @GetMapping(value = "/auto-execution-advice-stream", produces = "text/event-stream")
+    public SseEmitter getAutoExecutionAdviceStream() {
+        SseEmitter emitter = new SseEmitter(300000L);
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 获取最新传感器数据
+                SensorData latest = sensorDataMapper.selectList(null).stream()
+                    .max(Comparator.comparing(SensorData::getRecordTime))
+                    .orElse(null);
+                
+                if (latest == null) {
+                    emitter.send(SseEmitter.event().name("error").data("{\"error\":\"暂无传感器数据\"}"));
+                    emitter.complete();
+                    return;
+                }
+                
+                Map<String, Object> currentData = new HashMap<>();
+                currentData.put("temperatureC", latest.getTemperatureC());
+                currentData.put("humidityPct", latest.getHumidityPct());
+                currentData.put("soilMoisturePct", latest.getSoilMoisturePct());
+                currentData.put("lightLux", latest.getLightLux());
+                currentData.put("oxygenPct", latest.getOxygenPct());
+                currentData.put("co2Ppm", latest.getCo2Ppm());
+                
+                emitter.send(SseEmitter.event().name("start").data("{\"status\":\"start\"}"));
+                
+                // 对于auto-execution-advice，我们需要流式返回summary部分
+                StringBuilder summary = new StringBuilder();
+                aiService.callAiApiStream(
+                    "基于当前温室数据，请提供自动化执行建议。\n\n" +
+                    "当前数据：\n" +
+                    String.format("温度: %s°C, 湿度: %s%%, 土壤湿度: %s%%, 光照: %s lux, 氧气: %s%%, 二氧化碳: %s ppm\n",
+                        currentData.get("temperatureC"), currentData.get("humidityPct"),
+                        currentData.get("soilMoisturePct"), currentData.get("lightLux"),
+                        currentData.get("oxygenPct"), currentData.get("co2Ppm")) +
+                    "\n请以JSON格式返回建议，格式如下：\n" +
+                    "{\n" +
+                    "  \"actions\": [\n" +
+                    "    {\"type\": \"light\", \"action\": \"on/off\", \"reason\": \"原因\"},\n" +
+                    "    {\"type\": \"pump\", \"action\": \"on/off\", \"reason\": \"原因\"},\n" +
+                    "    {\"type\": \"recipe\", \"plotId\": 1, \"recipeId\": \"配方ID\", \"executions\": 1, \"reason\": \"原因\"}\n" +
+                    "  ],\n" +
+                    "  \"summary\": \"执行建议总结\"\n" +
+                    "}\n",
+                    chunk -> {
+                        summary.append(chunk);
+                        try {
+                            emitter.send(SseEmitter.event()
+                                .name("chunk")
+                                .data("{\"content\":\"" + 
+                                    chunk.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "") + "\"}"));
+                        } catch (Exception e) {
+                            log.error("发送流数据失败", e);
+                        }
+                    },
+                    () -> {
+                        try {
+                            // 尝试解析完整的响应为JSON
+                            String fullResponse = summary.toString();
+                            try {
+                                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                String jsonStr = fullResponse;
+                                if (fullResponse.contains("```json")) {
+                                    int start = fullResponse.indexOf("```json") + 7;
+                                    int end = fullResponse.indexOf("```", start);
+                                    jsonStr = fullResponse.substring(start, end).trim();
+                                } else if (fullResponse.contains("```")) {
+                                    int start = fullResponse.indexOf("```") + 3;
+                                    int end = fullResponse.indexOf("```", start);
+                                    jsonStr = fullResponse.substring(start, end).trim();
+                                }
+                                Map<String, Object> result = mapper.readValue(jsonStr, Map.class);
+                                emitter.send(SseEmitter.event()
+                                    .name("complete")
+                                    .data("{\"status\":\"complete\",\"data\":" + mapper.writeValueAsString(result) + "}"));
+                            } catch (Exception e) {
+                                // 如果解析失败，只返回summary
+                                Map<String, Object> result = new HashMap<>();
+                                result.put("summary", fullResponse);
+                                result.put("actions", new ArrayList<>());
+                                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                emitter.send(SseEmitter.event()
+                                    .name("complete")
+                                    .data("{\"status\":\"complete\",\"data\":" + mapper.writeValueAsString(result) + "}"));
+                            }
+                            emitter.complete();
+                        } catch (Exception e) {
+                            emitter.completeWithError(e);
+                        }
+                    });
+                
+            } catch (Exception e) {
+                log.error("获取AI自动执行建议失败", e);
+                try {
+                    emitter.send(SseEmitter.event().name("error").data("{\"error\":\"" + e.getMessage() + "\"}"));
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    emitter.completeWithError(ex);
+                }
+            }
+        });
+        
+        return emitter;
     }
     
     /**
@@ -573,6 +1103,350 @@ public class AiController {
             log.error("手动生成报告失败: {}", e.getMessage(), e);
             return Result.error("手动生成报告失败: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 一键分析（流式输出所有分析结果）
+     */
+    @GetMapping(value = "/analyze-all-stream", produces = "text/event-stream")
+    public SseEmitter analyzeAllStream(
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate) {
+        
+        SseEmitter emitter = new SseEmitter(300000L); // 5分钟超时
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 获取数据
+                List<Image> images = imageMapper.selectList(null);
+                List<SensorData> sensorDataList = sensorDataMapper.selectList(null);
+                List<com.greenhouse.entity.ExecutionLog> executionLogs = executionLogMapper.selectList(null);
+                
+                // 根据日期范围过滤
+                if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
+                    try {
+                        LocalDate start = LocalDate.parse(startDate);
+                        LocalDate end = LocalDate.parse(endDate);
+                        Date startDateTime = Date.from(start.atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        Date endDateTime = Date.from(end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        
+                        images = images.stream()
+                            .filter(img -> {
+                                if (img.getRecordTime() == null) return false;
+                                return img.getRecordTime().after(startDateTime) && img.getRecordTime().before(endDateTime);
+                            })
+                            .collect(Collectors.toList());
+                        
+                        sensorDataList = sensorDataList.stream()
+                            .filter(data -> {
+                                if (data.getRecordTime() == null) return false;
+                                return data.getRecordTime().after(startDateTime) && data.getRecordTime().before(endDateTime);
+                            })
+                            .collect(Collectors.toList());
+                    } catch (Exception e) {
+                        log.warn("日期解析失败，使用全部数据: {}", e.getMessage());
+                    }
+                }
+                
+                // 转换为Map格式
+                List<Map<String, Object>> imageData = images.stream()
+                    .sorted((a, b) -> {
+                        if (a.getRecordTime() == null || b.getRecordTime() == null) return 0;
+                        return b.getRecordTime().compareTo(a.getRecordTime());
+                    })
+                    .limit(30)
+                    .map(img -> {
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("recordTime", img.getRecordTime());
+                        map.put("temperatureC", img.getTemperatureC());
+                        map.put("humidityPct", img.getHumidityPct());
+                        map.put("soilMoisturePct", img.getSoilMoisturePct());
+                        map.put("lightLux", img.getLightLux());
+                        map.put("isAbnormal", img.getIsAbnormal());
+                        return map;
+                    }).collect(Collectors.toList());
+                
+                List<Map<String, Object>> sensorData = sensorDataList.stream()
+                    .sorted((a, b) -> {
+                        if (a.getRecordTime() == null || b.getRecordTime() == null) return 0;
+                        return b.getRecordTime().compareTo(a.getRecordTime());
+                    })
+                    .limit(30)
+                    .map(data -> {
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("recordTime", data.getRecordTime());
+                        map.put("temperatureC", data.getTemperatureC());
+                        map.put("humidityPct", data.getHumidityPct());
+                        map.put("soilMoisturePct", data.getSoilMoisturePct());
+                        map.put("lightLux", data.getLightLux());
+                        map.put("oxygenPct", data.getOxygenPct());
+                        map.put("co2Ppm", data.getCo2Ppm());
+                        return map;
+                    }).collect(Collectors.toList());
+                
+                List<Map<String, Object>> logData = executionLogs.stream()
+                    .sorted((a, b) -> {
+                        if (a.getExecutedAt() == null || b.getExecutedAt() == null) return 0;
+                        return b.getExecutedAt().compareTo(a.getExecutedAt());
+                    })
+                    .limit(10)
+                    .map(log -> {
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("executedAt", log.getExecutedAt());
+                        map.put("plotId", log.getPlotId());
+                        map.put("executions", log.getExecutions());
+                        return map;
+                    }).collect(Collectors.toList());
+                
+                // 获取自动化设置
+                Map<String, Object> automationSettings = new HashMap<>();
+                var settings = automationSettingMapper.selectList(null);
+                for (var setting : settings) {
+                    automationSettings.put(setting.getSettingKey(), setting.getSettingValue());
+                }
+                
+                // 获取最新传感器数据
+                SensorData latest = sensorDataMapper.selectOne(
+                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<SensorData>()
+                        .orderByDesc("record_time")
+                        .last("LIMIT 1")
+                );
+                Map<String, Object> currentData = new HashMap<>();
+                if (latest != null) {
+                    currentData.put("temperatureC", latest.getTemperatureC());
+                    currentData.put("humidityPct", latest.getHumidityPct());
+                    currentData.put("soilMoisturePct", latest.getSoilMoisturePct());
+                    currentData.put("lightLux", latest.getLightLux());
+                    currentData.put("oxygenPct", latest.getOxygenPct());
+                    currentData.put("co2Ppm", latest.getCo2Ppm());
+                }
+                
+                // 使用原子计数器跟踪完成的任务数
+                java.util.concurrent.atomic.AtomicInteger completedTasks = new java.util.concurrent.atomic.AtomicInteger(0);
+                final int totalTasks = 4;
+                
+                // 1. 图片分析（流式）- 并行执行
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        emitter.send(SseEmitter.event()
+                            .name("start")
+                            .data("{\"type\":\"image_analysis\",\"status\":\"start\"}"));
+                        
+                        StringBuilder imageReport = new StringBuilder();
+                        aiService.analyzeImagesStream(imageData, 
+                            chunk -> {
+                                imageReport.append(chunk);
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                        .name("chunk")
+                                        .data("{\"type\":\"image_analysis\",\"content\":\"" + 
+                                            chunk.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "") + "\"}"));
+                                } catch (Exception e) {
+                                    log.error("发送图片分析流数据失败", e);
+                                }
+                            },
+                            () -> {
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                        .name("complete")
+                                        .data("{\"type\":\"image_analysis\",\"status\":\"complete\"}"));
+                                    
+                                    // 检查是否所有任务完成
+                                    if (completedTasks.incrementAndGet() == totalTasks) {
+                                        emitter.send(SseEmitter.event()
+                                            .name("all_complete")
+                                            .data("{\"status\":\"all_complete\"}"));
+                                        emitter.complete();
+                                    }
+                                } catch (Exception e) {
+                                    log.error("发送图片分析完成事件失败", e);
+                                }
+                            });
+                    } catch (Exception e) {
+                        log.error("图片分析失败", e);
+                        if (completedTasks.incrementAndGet() == totalTasks) {
+                            try {
+                                emitter.send(SseEmitter.event()
+                                    .name("all_complete")
+                                    .data("{\"status\":\"all_complete\"}"));
+                                emitter.complete();
+                            } catch (Exception ex) {
+                                emitter.completeWithError(ex);
+                            }
+                        }
+                    }
+                });
+                
+                // 2. 传感器数据分析（流式）- 并行执行
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        emitter.send(SseEmitter.event()
+                            .name("start")
+                            .data("{\"type\":\"sensor_analysis\",\"status\":\"start\"}"));
+                        
+                        StringBuilder sensorReport = new StringBuilder();
+                        aiService.analyzeSensorDataStream(sensorData,
+                            chunk -> {
+                                sensorReport.append(chunk);
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                        .name("chunk")
+                                        .data("{\"type\":\"sensor_analysis\",\"content\":\"" + 
+                                            chunk.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "") + "\"}"));
+                                } catch (Exception e) {
+                                    log.error("发送传感器分析流数据失败", e);
+                                }
+                            },
+                            () -> {
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                        .name("complete")
+                                        .data("{\"type\":\"sensor_analysis\",\"status\":\"complete\"}"));
+                                    
+                                    // 检查是否所有任务完成
+                                    if (completedTasks.incrementAndGet() == totalTasks) {
+                                        emitter.send(SseEmitter.event()
+                                            .name("all_complete")
+                                            .data("{\"status\":\"all_complete\"}"));
+                                        emitter.complete();
+                                    }
+                                } catch (Exception e) {
+                                    log.error("发送传感器分析完成事件失败", e);
+                                }
+                            });
+                    } catch (Exception e) {
+                        log.error("传感器分析失败", e);
+                        if (completedTasks.incrementAndGet() == totalTasks) {
+                            try {
+                                emitter.send(SseEmitter.event()
+                                    .name("all_complete")
+                                    .data("{\"status\":\"all_complete\"}"));
+                                emitter.complete();
+                            } catch (Exception ex) {
+                                emitter.completeWithError(ex);
+                            }
+                        }
+                    }
+                });
+                
+                // 3. 自动化建议（流式）- 并行执行
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        emitter.send(SseEmitter.event()
+                            .name("start")
+                            .data("{\"type\":\"automation_advice\",\"status\":\"start\"}"));
+                        
+                        StringBuilder automationAdvice = new StringBuilder();
+                        aiService.generateAutomationAdviceStream(currentData, automationSettings,
+                            chunk -> {
+                                automationAdvice.append(chunk);
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                        .name("chunk")
+                                        .data("{\"type\":\"automation_advice\",\"content\":\"" + 
+                                            chunk.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "") + "\"}"));
+                                } catch (Exception e) {
+                                    log.error("发送自动化建议流数据失败", e);
+                                }
+                            },
+                            () -> {
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                        .name("complete")
+                                        .data("{\"type\":\"automation_advice\",\"status\":\"complete\"}"));
+                                    
+                                    // 检查是否所有任务完成
+                                    if (completedTasks.incrementAndGet() == totalTasks) {
+                                        emitter.send(SseEmitter.event()
+                                            .name("all_complete")
+                                            .data("{\"status\":\"all_complete\"}"));
+                                        emitter.complete();
+                                    }
+                                } catch (Exception e) {
+                                    log.error("发送自动化建议完成事件失败", e);
+                                }
+                            });
+                    } catch (Exception e) {
+                        log.error("自动化建议失败", e);
+                        if (completedTasks.incrementAndGet() == totalTasks) {
+                            try {
+                                emitter.send(SseEmitter.event()
+                                    .name("all_complete")
+                                    .data("{\"status\":\"all_complete\"}"));
+                                emitter.complete();
+                            } catch (Exception ex) {
+                                emitter.completeWithError(ex);
+                            }
+                        }
+                    }
+                });
+                
+                // 4. 综合报告（流式）- 并行执行
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        emitter.send(SseEmitter.event()
+                            .name("start")
+                            .data("{\"type\":\"comprehensive_report\",\"status\":\"start\"}"));
+                        
+                        StringBuilder comprehensiveReport = new StringBuilder();
+                        aiService.generateComprehensiveReportStream(imageData, sensorData, logData, automationSettings,
+                            chunk -> {
+                                comprehensiveReport.append(chunk);
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                        .name("chunk")
+                                        .data("{\"type\":\"comprehensive_report\",\"content\":\"" + 
+                                            chunk.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "") + "\"}"));
+                                } catch (Exception e) {
+                                    log.error("发送综合报告流数据失败", e);
+                                }
+                            },
+                            () -> {
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                        .name("complete")
+                                        .data("{\"type\":\"comprehensive_report\",\"status\":\"complete\"}"));
+                                    
+                                    // 检查是否所有任务完成
+                                    if (completedTasks.incrementAndGet() == totalTasks) {
+                                        emitter.send(SseEmitter.event()
+                                            .name("all_complete")
+                                            .data("{\"status\":\"all_complete\"}"));
+                                        emitter.complete();
+                                    }
+                                } catch (Exception e) {
+                                    log.error("发送综合报告完成事件失败", e);
+                                }
+                            });
+                    } catch (Exception e) {
+                        log.error("综合报告失败", e);
+                        if (completedTasks.incrementAndGet() == totalTasks) {
+                            try {
+                                emitter.send(SseEmitter.event()
+                                    .name("all_complete")
+                                    .data("{\"status\":\"all_complete\"}"));
+                                emitter.complete();
+                            } catch (Exception ex) {
+                                emitter.completeWithError(ex);
+                            }
+                        }
+                    }
+                });
+                
+            } catch (Exception e) {
+                log.error("一键分析失败", e);
+                try {
+                    emitter.send(SseEmitter.event()
+                        .name("error")
+                        .data("{\"error\":\"" + e.getMessage() + "\"}"));
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    emitter.completeWithError(ex);
+                }
+            }
+        });
+        
+        return emitter;
     }
 }
 

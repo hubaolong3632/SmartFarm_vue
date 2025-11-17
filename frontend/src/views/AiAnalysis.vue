@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useGreenhouseStore } from '../stores/greenhouse'
 import { ElMessage } from 'element-plus'
+import { MagicStick } from '@element-plus/icons-vue'
 import { marked } from 'marked'
 
 const store = useGreenhouseStore()
@@ -345,9 +346,270 @@ const autoExecutionAdviceHtml = computed(() => {
   return renderMarkdown(autoExecutionAdvice.value.summary)
 })
 
-// 页面加载时获取自动报告状态
+// 一键分析（流式）
+const analyzingAll = ref(false)
+const analyzeProgress = ref({
+  image_analysis: false,
+  sensor_analysis: false,
+  automation_advice: false,
+  comprehensive_report: false,
+  auto_execution: false
+})
+
+async function handleAnalyzeAll() {
+  analyzingAll.value = true
+  // 清空之前的报告
+  imageReport.value = ''
+  sensorReport.value = ''
+  automationAdvice.value = ''
+  comprehensiveReport.value = ''
+  autoExecutionAdvice.value = null
+  
+  // 重置进度
+  analyzeProgress.value = {
+    image_analysis: false,
+    sensor_analysis: false,
+    automation_advice: false,
+    comprehensive_report: false,
+    auto_execution: false
+  }
+  
+  try {
+    const startDate = dateRange.value && dateRange.value.length > 0 ? formatDate(dateRange.value[0]) : null
+    const endDate = dateRange.value && dateRange.value.length > 1 ? formatDate(dateRange.value[1]) : null
+    
+    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:10002/api'
+    
+    // 同时调用5个流式接口
+    const eventSources = []
+    const completedTasks = { count: 0, total: 5 }
+    
+    // 1. 图片分析
+    let imageUrl = `${baseURL}/ai/analyze-images-stream?limit=30`
+    if (startDate && endDate) {
+      imageUrl += `&startDate=${startDate}&endDate=${endDate}`
+    }
+    const es1 = new EventSource(imageUrl)
+    let imageContent = ''
+    es1.addEventListener('start', () => {
+      analyzeProgress.value.image_analysis = true
+      ElMessage.info('开始图片分析...')
+    })
+    es1.addEventListener('chunk', (event) => {
+      const data = JSON.parse(event.data)
+      if (data.content) {
+        imageContent += data.content
+        imageReport.value = imageContent
+      }
+    })
+    es1.addEventListener('complete', () => {
+      analyzeProgress.value.image_analysis = false
+      es1.close()
+      completedTasks.count++
+      ElMessage.success('图片分析完成')
+      if (completedTasks.count === completedTasks.total) {
+        analyzingAll.value = false
+        ElMessage.success('所有分析完成！')
+      }
+    })
+    es1.addEventListener('error', (event) => {
+      const data = JSON.parse(event.data)
+      ElMessage.error('图片分析失败: ' + (data.error || '未知错误'))
+      es1.close()
+      completedTasks.count++
+      if (completedTasks.count === completedTasks.total) {
+        analyzingAll.value = false
+      }
+    })
+    eventSources.push(es1)
+    
+    // 2. 传感器数据分析
+    let sensorUrl = `${baseURL}/ai/analyze-sensor-data-stream?limit=30`
+    if (startDate && endDate) {
+      sensorUrl += `&startDate=${startDate}&endDate=${endDate}`
+    }
+    const es2 = new EventSource(sensorUrl)
+    let sensorContent = ''
+    es2.addEventListener('start', () => {
+      analyzeProgress.value.sensor_analysis = true
+      ElMessage.info('开始传感器数据分析...')
+    })
+    es2.addEventListener('chunk', (event) => {
+      const data = JSON.parse(event.data)
+      if (data.content) {
+        sensorContent += data.content
+        sensorReport.value = sensorContent
+      }
+    })
+    es2.addEventListener('complete', () => {
+      analyzeProgress.value.sensor_analysis = false
+      es2.close()
+      completedTasks.count++
+      ElMessage.success('传感器数据分析完成')
+      if (completedTasks.count === completedTasks.total) {
+        analyzingAll.value = false
+        ElMessage.success('所有分析完成！')
+      }
+    })
+    es2.addEventListener('error', (event) => {
+      const data = JSON.parse(event.data)
+      ElMessage.error('传感器数据分析失败: ' + (data.error || '未知错误'))
+      es2.close()
+      completedTasks.count++
+      if (completedTasks.count === completedTasks.total) {
+        analyzingAll.value = false
+      }
+    })
+    eventSources.push(es2)
+    
+    // 3. 自动化建议
+    const es3 = new EventSource(`${baseURL}/ai/automation-advice-stream`)
+    let automationContent = ''
+    es3.addEventListener('start', () => {
+      analyzeProgress.value.automation_advice = true
+      ElMessage.info('开始自动化建议分析...')
+    })
+    es3.addEventListener('chunk', (event) => {
+      const data = JSON.parse(event.data)
+      if (data.content) {
+        automationContent += data.content
+        automationAdvice.value = automationContent
+      }
+    })
+    es3.addEventListener('complete', () => {
+      analyzeProgress.value.automation_advice = false
+      es3.close()
+      completedTasks.count++
+      ElMessage.success('自动化建议完成')
+      if (completedTasks.count === completedTasks.total) {
+        analyzingAll.value = false
+        ElMessage.success('所有分析完成！')
+      }
+    })
+    es3.addEventListener('error', (event) => {
+      const data = JSON.parse(event.data)
+      ElMessage.error('自动化建议失败: ' + (data.error || '未知错误'))
+      es3.close()
+      completedTasks.count++
+      if (completedTasks.count === completedTasks.total) {
+        analyzingAll.value = false
+      }
+    })
+    eventSources.push(es3)
+    
+    // 4. 综合报告
+    let comprehensiveUrl = `${baseURL}/ai/comprehensive-report-stream`
+    if (startDate && endDate) {
+      comprehensiveUrl += `?startDate=${startDate}&endDate=${endDate}`
+    }
+    const es4 = new EventSource(comprehensiveUrl)
+    let comprehensiveContent = ''
+    es4.addEventListener('start', () => {
+      analyzeProgress.value.comprehensive_report = true
+      ElMessage.info('开始综合报告生成...')
+    })
+    es4.addEventListener('chunk', (event) => {
+      const data = JSON.parse(event.data)
+      if (data.content) {
+        comprehensiveContent += data.content
+        comprehensiveReport.value = comprehensiveContent
+      }
+    })
+    es4.addEventListener('complete', () => {
+      analyzeProgress.value.comprehensive_report = false
+      es4.close()
+      completedTasks.count++
+      ElMessage.success('综合报告完成')
+      if (completedTasks.count === completedTasks.total) {
+        analyzingAll.value = false
+        ElMessage.success('所有分析完成！')
+      }
+    })
+    es4.addEventListener('error', (event) => {
+      const data = JSON.parse(event.data)
+      ElMessage.error('综合报告失败: ' + (data.error || '未知错误'))
+      es4.close()
+      completedTasks.count++
+      if (completedTasks.count === completedTasks.total) {
+        analyzingAll.value = false
+      }
+    })
+    eventSources.push(es4)
+    
+    // 5. AI自动执行建议
+    const es5 = new EventSource(`${baseURL}/ai/auto-execution-advice-stream`)
+    let autoExecutionContent = ''
+    es5.addEventListener('start', () => {
+      analyzeProgress.value.auto_execution = true
+      ElMessage.info('开始AI自动执行建议分析...')
+    })
+    es5.addEventListener('chunk', (event) => {
+      const data = JSON.parse(event.data)
+      if (data.content) {
+        autoExecutionContent += data.content
+        // 对于auto-execution，我们只显示summary部分
+        if (!autoExecutionAdvice.value) {
+          autoExecutionAdvice.value = { summary: '', actions: [] }
+        }
+        autoExecutionAdvice.value.summary = autoExecutionContent
+      }
+    })
+    es5.addEventListener('complete', (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.data) {
+          autoExecutionAdvice.value = data.data
+        }
+      } catch (e) {
+        console.error('解析auto-execution数据失败:', e)
+      }
+      analyzeProgress.value.auto_execution = false
+      es5.close()
+      completedTasks.count++
+      ElMessage.success('AI自动执行建议完成')
+      if (completedTasks.count === completedTasks.total) {
+        analyzingAll.value = false
+        ElMessage.success('所有分析完成！')
+      }
+    })
+    es5.addEventListener('error', (event) => {
+      const data = JSON.parse(event.data)
+      ElMessage.error('AI自动执行建议失败: ' + (data.error || '未知错误'))
+      es5.close()
+      completedTasks.count++
+      if (completedTasks.count === completedTasks.total) {
+        analyzingAll.value = false
+      }
+    })
+    eventSources.push(es5)
+    
+    // 错误处理
+    eventSources.forEach(es => {
+      es.onerror = (error) => {
+        console.error('SSE连接错误:', error)
+      }
+    })
+    
+  } catch (error) {
+    analyzingAll.value = false
+    ElMessage.error('一键分析失败: ' + error.message)
+  }
+}
+
+function getTypeName(type) {
+  const names = {
+    'image_analysis': '图片分析',
+    'sensor_analysis': '传感器数据分析',
+    'automation_advice': '自动化建议',
+    'comprehensive_report': '综合报告'
+  }
+  return names[type] || type
+}
+
+// 页面加载时获取自动报告状态并设置默认日期为今天
 onMounted(() => {
   loadAutoReportStatus()
+  setToday() // 默认设置为今天
 })
 </script>
 
@@ -358,6 +620,16 @@ onMounted(() => {
         <div style="display: flex; align-items: center; justify-content: space-between;">
           <span style="font-weight: 600; font-size: 18px;">AI自动化分析</span>
           <div style="display: flex; align-items: center; gap: 12px;">
+            <el-button 
+              type="primary" 
+              size="default"
+              :loading="analyzingAll"
+              @click="handleAnalyzeAll"
+              style="margin-right: 16px;"
+            >
+              <el-icon style="margin-right: 4px;"><MagicStick /></el-icon>
+              一键分析
+            </el-button>
             <span style="font-size: 14px; color: #606266;">每日自动生成报告：</span>
             <el-switch
               v-model="autoReportEnabled"
