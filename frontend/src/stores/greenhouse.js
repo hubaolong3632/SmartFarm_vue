@@ -1072,7 +1072,15 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
    */
   async function executeAiAction(action) {
     try {
-      const data = await request.post('/ai/auto-execution-advice/execute', action, { timeout: 10000 })
+      const payload = { ...action }
+      if (payload.type === 'light') {
+        payload.type = 1
+      } else if (payload.type === 'pump' || payload.type === 'water') {
+        payload.type = 2
+      } else if (payload.type === 'recipe' || payload.type === 'nutrient') {
+        payload.type = 3
+      }
+      const data = await request.post('/ai/auto-execution-advice/execute', payload, { timeout: 10000 })
       return data !== null
     } catch (error) {
       console.error('执行AI操作失败:', error)

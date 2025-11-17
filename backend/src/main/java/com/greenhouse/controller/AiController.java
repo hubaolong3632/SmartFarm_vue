@@ -5,6 +5,8 @@ import com.greenhouse.dto.AiReportDTO;
 import com.greenhouse.entity.AiReport;
 import com.greenhouse.entity.AiExecutionLog;
 import com.greenhouse.entity.Image;
+import com.greenhouse.entity.Plot;
+import com.greenhouse.entity.Recipe;
 import com.greenhouse.entity.SensorData;
 import com.greenhouse.mapper.AiReportMapper;
 import com.greenhouse.mapper.AiExecutionLogMapper;
@@ -12,6 +14,8 @@ import com.greenhouse.mapper.ImageMapper;
 import com.greenhouse.mapper.SensorDataMapper;
 import com.greenhouse.mapper.ExecutionLogMapper;
 import com.greenhouse.mapper.AutomationSettingMapper;
+import com.greenhouse.mapper.PlotMapper;
+import com.greenhouse.mapper.RecipeMapper;
 import com.greenhouse.service.AiService;
 import com.greenhouse.service.MqttService;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +49,8 @@ public class AiController {
     private final AutomationSettingMapper automationSettingMapper;
     private final AiReportMapper aiReportMapper;
     private final AiExecutionLogMapper aiExecutionLogMapper;
+    private final PlotMapper plotMapper;
+    private final RecipeMapper recipeMapper;
     private final MqttService mqttService;
     
     /**
@@ -878,21 +884,70 @@ public class AiController {
     @PostMapping("/auto-execution-advice/execute")
     public Result<String> executeAiAction(@RequestBody Map<String, Object> action) {
         try {
-            // 构建MQTT消息
-            Map<String, Object> message = new HashMap<>();
-            message.put("type", action.get("type")); // light, pump, recipe
-            message.put("action", action.get("action")); // on/off
-            message.put("reason", action.get("reason"));
-            
-            if ("recipe".equals(action.get("type"))) {
-                message.put("plotId", action.get("plotId"));
-                message.put("recipeId", action.get("recipeId"));
-                message.put("executions", action.get("executions"));
+            Integer operationType = parseInteger(action.get("type"));
+            if (operationType == null) {
+                String typeStr = action.get("type") != null ? action.get("type").toString() : null;
+                if ("light".equalsIgnoreCase(typeStr)) {
+                    operationType = 1;
+                } else if ("pump".equalsIgnoreCase(typeStr) || "water".equalsIgnoreCase(typeStr)) {
+                    operationType = 2;
+                } else if ("recipe".equalsIgnoreCase(typeStr) || "nutrient".equalsIgnoreCase(typeStr)) {
+                    operationType = 3;
+                }
             }
-            
+            if (operationType == null) {
+                return Result.error("操作类型无效");
+            }
+
+            Integer plotId = parseInteger(action.get("plotId"));
+            if (plotId == null) {
+                return Result.error("缺少 plotId");
+            }
+
+            Integer executions = parseInteger(action.get("executions"));
+            if (executions == null || executions <= 0) {
+                executions = 1;
+            }
+
+            String recipeId = action.get("recipeId") != null ? action.get("recipeId").toString() : null;
+
+            Map<String, Object> message = new HashMap<>();
+            message.put("operationType", operationType);
+            message.put("plotId", plotId);
+            message.put("reason", action.get("reason"));
             message.put("executeTime", System.currentTimeMillis());
             message.put("source", "ai_auto_execution");
-            
+
+            if (operationType == 1) {
+                message.put("operation", "light");
+                message.put("action", action.getOrDefault("action", "on"));
+            } else if (operationType == 2) {
+                message.put("operation", "water");
+                message.put("action", action.getOrDefault("action", "start"));
+            } else if (operationType == 3) {
+                if (recipeId == null) {
+                    return Result.error("类型3需要提供 recipeId");
+                }
+                Plot plot = plotMapper.selectById(plotId);
+                if (plot == null) {
+                    return Result.error("地块不存在");
+                }
+                Recipe recipe = recipeMapper.selectById(recipeId);
+                if (recipe == null) {
+                    return Result.error("配方不存在");
+                }
+                message.put("plotName", plot.getName() != null ? plot.getName() : "地块" + plot.getPlotNumber());
+                message.put("recipeId", recipeId);
+                message.put("recipeName", recipe.getName());
+                message.put("waterMl", recipe.getWaterMl() != null ? recipe.getWaterMl() : 0);
+                message.put("nutrientMl", recipe.getNutrientMl() != null ? recipe.getNutrientMl() : 0);
+                message.put("rootingPowderMl", recipe.getRootingPowderMl() != null ? recipe.getRootingPowderMl() : 0);
+                message.put("specialMl", recipe.getSpecialMl() != null ? recipe.getSpecialMl() : 0);
+                message.put("executions", executions);
+            } else {
+                return Result.error("未知的操作类型");
+            }
+
             // 转换为JSON字符串
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
             String jsonMessage = mapper.writeValueAsString(message);
@@ -903,22 +958,14 @@ public class AiController {
 
             // 保存执行记录到数据库
             AiExecutionLog logEntity = new AiExecutionLog();
-            Object typeObj = action.get("type");
-            logEntity.setOperationType(typeObj != null ? typeObj.toString() : null);
+            logEntity.setOperationType(String.valueOf(operationType));
             Object actionObj = action.get("action");
             logEntity.setAction(actionObj != null ? actionObj.toString() : null);
-            Object plotIdObj = action.get("plotId");
-            if (plotIdObj != null) {
-                logEntity.setPlotId(Integer.valueOf(plotIdObj.toString()));
+            logEntity.setPlotId(plotId);
+            if (recipeId != null) {
+                logEntity.setRecipeId(recipeId);
             }
-            Object recipeIdObj = action.get("recipeId");
-            if (recipeIdObj != null) {
-                logEntity.setRecipeId(recipeIdObj.toString());
-            }
-            Object executionsObj = action.get("executions");
-            if (executionsObj != null) {
-                logEntity.setExecutions(Integer.valueOf(executionsObj.toString()));
-            }
+            logEntity.setExecutions(executions);
             Object reasonObj = action.get("reason");
             if (reasonObj != null) {
                 logEntity.setReason(reasonObj.toString());
@@ -933,6 +980,20 @@ public class AiController {
         } catch (Exception e) {
             log.error("执行AI自动执行建议失败: {}", e.getMessage(), e);
             return Result.error("执行失败: " + e.getMessage());
+        }
+    }
+
+    private Integer parseInteger(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
     
