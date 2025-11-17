@@ -5,6 +5,14 @@ spring:
   # 可以通过启动参数覆盖: java -jar app.jar --spring.profiles.active=prod
   profiles:
     active: dev
+  # AI 配置
+  ai:
+    openai:
+      base-url: https://api.deepseek.com
+      api-key: sk-951090b0c4c243a4a708d5e605205097
+      chat:
+        options:
+          model: deepseek-chat
 
 # 服务器配置
 server:

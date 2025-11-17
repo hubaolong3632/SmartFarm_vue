@@ -897,6 +897,73 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     }
   }
   
+  // ========== AI功能 ==========
+  
+  /**
+   * 分析图片集（超时时间5分钟）
+   */
+  async function analyzeImages(limit = 30) {
+    try {
+      const data = await request.post(`/ai/analyze-images?limit=${limit}`, {}, { timeout: 300000 })
+      return data
+    } catch (error) {
+      console.error('AI分析图片失败:', error)
+      return null
+    }
+  }
+  
+  /**
+   * 分析传感器数据（超时时间5分钟）
+   */
+  async function analyzeSensorData(limit = 30) {
+    try {
+      const data = await request.post(`/ai/analyze-sensor-data?limit=${limit}`, {}, { timeout: 300000 })
+      return data
+    } catch (error) {
+      console.error('AI分析传感器数据失败:', error)
+      return null
+    }
+  }
+  
+  /**
+   * 获取自动化建议（超时时间5分钟）
+   */
+  async function getAutomationAdvice() {
+    try {
+      const data = await request.post('/ai/automation-advice', {}, { timeout: 300000 })
+      return data
+    } catch (error) {
+      console.error('获取AI自动化建议失败:', error)
+      return null
+    }
+  }
+  
+  /**
+   * 生成综合报告（超时时间5分钟）
+   */
+  async function generateComprehensiveReport() {
+    try {
+      const data = await request.post('/ai/comprehensive-report', {}, { timeout: 300000 })
+      return data
+    } catch (error) {
+      console.error('生成AI综合报告失败:', error)
+      return null
+    }
+  }
+  
+  /**
+   * 获取AI自动执行建议（超时时间5分钟）
+   */
+  async function getAutoExecutionAdvice() {
+    try {
+      const data = await request.post('/ai/auto-execution-advice', {}, { timeout: 300000 })
+      return data
+    } catch (error) {
+      console.error('获取AI自动执行建议失败:', error)
+      return null
+    }
+  }
+  
   // ========== 导出 ==========
   
   return {
@@ -962,5 +1029,12 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     // 轮询
     startSimulation,
     stopSimulation,
+    
+    // AI功能
+    analyzeImages,
+    analyzeSensorData,
+    getAutomationAdvice,
+    generateComprehensiveReport,
+    getAutoExecutionAdvice,
   }
 })

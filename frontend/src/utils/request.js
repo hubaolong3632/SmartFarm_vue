@@ -88,11 +88,12 @@ export default {
    * POST 请求
    * @param {string} url - 接口路径
    * @param {object} data - 请求体
+   * @param {object} config - 请求配置（如timeout等）
    * @returns {Promise}
    */
-  async post(url, data = {}) {
+  async post(url, data = {}, config = {}) {
     try {
-      return await service.post(url, data)
+      return await service.post(url, data, config)
     } catch (error) {
       console.error(`POST 请求异常[${url}]:`, error)
       return null

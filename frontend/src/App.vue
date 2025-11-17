@@ -14,6 +14,7 @@
         <el-menu-item index="/soil-assignment">土壤分配</el-menu-item>
         <el-menu-item index="/automation">自动化</el-menu-item>
         <el-menu-item index="/gallery">图片集</el-menu-item>
+        <el-menu-item index="/ai-analysis">AI自动化分析</el-menu-item>
       </el-menu>
     </el-header>
     <el-main style="background:#f6f7f9;">

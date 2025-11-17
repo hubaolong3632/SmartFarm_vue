@@ -34,6 +34,12 @@ const router = createRouter({
       // 图片集：按日期查看每小时图片与指标，并标记异常
       component: () => import('../views/ImageGallery.vue'),
     },
+    {
+      path: '/ai-analysis',
+      name: 'aiAnalysis',
+      // AI自动化分析：图片分析、传感器数据分析、自动化建议、综合报告
+      component: () => import('../views/AiAnalysis.vue'),
+    },
   ],
 })
 
