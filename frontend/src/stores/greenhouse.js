@@ -902,9 +902,12 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   /**
    * 分析图片集（超时时间5分钟）
    */
-  async function analyzeImages(limit = 30) {
+  async function analyzeImages(limit = 30, startDate = null, endDate = null) {
     try {
-      const data = await request.post(`/ai/analyze-images?limit=${limit}`, {}, { timeout: 300000 })
+      let url = `/ai/analyze-images?limit=${limit}`
+      if (startDate) url += `&startDate=${startDate}`
+      if (endDate) url += `&endDate=${endDate}`
+      const data = await request.post(url, {}, { timeout: 300000 })
       return data
     } catch (error) {
       console.error('AI分析图片失败:', error)
@@ -915,9 +918,12 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   /**
    * 分析传感器数据（超时时间5分钟）
    */
-  async function analyzeSensorData(limit = 30) {
+  async function analyzeSensorData(limit = 30, startDate = null, endDate = null) {
     try {
-      const data = await request.post(`/ai/analyze-sensor-data?limit=${limit}`, {}, { timeout: 300000 })
+      let url = `/ai/analyze-sensor-data?limit=${limit}`
+      if (startDate) url += `&startDate=${startDate}`
+      if (endDate) url += `&endDate=${endDate}`
+      const data = await request.post(url, {}, { timeout: 300000 })
       return data
     } catch (error) {
       console.error('AI分析传感器数据失败:', error)
@@ -941,9 +947,14 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   /**
    * 生成综合报告（超时时间5分钟）
    */
-  async function generateComprehensiveReport() {
+  async function generateComprehensiveReport(startDate = null, endDate = null) {
     try {
-      const data = await request.post('/ai/comprehensive-report', {}, { timeout: 300000 })
+      let url = '/ai/comprehensive-report'
+      if (startDate) url += `?startDate=${startDate}`
+      if (endDate) {
+        url += startDate ? `&endDate=${endDate}` : `?endDate=${endDate}`
+      }
+      const data = await request.post(url, {}, { timeout: 300000 })
       return data
     } catch (error) {
       console.error('生成AI综合报告失败:', error)
