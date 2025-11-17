@@ -307,21 +307,72 @@ async function handleGetAutoExecutionAdvice() {
   }
 }
 
-// 执行AI建议的操作
+// 执行AI建议的操作（推送到MQTT）
 async function executeAiAction(action) {
   try {
-    if (action.type === 'light') {
-      await store.toggleLight(action.action === 'on')
-      ElMessage.success(`补光灯已${action.action === 'on' ? '打开' : '关闭'}`)
-    } else if (action.type === 'pump') {
-      // 这里可以添加抽水操作
-      ElMessage.info('抽水操作: ' + action.reason)
-    } else if (action.type === 'recipe') {
-      await store.executeAssignment(action.plotId, action.executions)
-      ElMessage.success(`地块${action.plotId}执行配方成功`)
+    const result = await store.executeAiAction(action)
+    if (result) {
+      ElMessage.success('操作已发送到MQTT')
+    } else {
+      ElMessage.error('发送操作失败')
     }
   } catch (error) {
     ElMessage.error('执行操作失败: ' + error.message)
+  }
+}
+
+// 保存AI自动执行建议报告
+async function saveAutoExecutionReport() {
+  if (!autoExecutionAdvice.value) {
+    ElMessage.warning('请先生成建议')
+    return
+  }
+  try {
+    // 将建议转换为Markdown格式
+    let reportContent = ''
+    if (autoExecutionAdvice.value.summary) {
+      reportContent += `## 执行建议总结\n\n${autoExecutionAdvice.value.summary}\n\n`
+    }
+    if (autoExecutionAdvice.value.actions && autoExecutionAdvice.value.actions.length > 0) {
+      reportContent += `## 具体操作建议\n\n`
+      autoExecutionAdvice.value.actions.forEach((action, index) => {
+        reportContent += `### 操作 ${index + 1}\n\n`
+        reportContent += `- **操作类型**: ${action.type}\n`
+        if (action.action) {
+          reportContent += `- **动作**: ${action.action}\n`
+        }
+        if (action.plotId) {
+          reportContent += `- **地块ID**: ${action.plotId}\n`
+        }
+        if (action.recipeId) {
+          reportContent += `- **配方ID**: ${action.recipeId}\n`
+        }
+        if (action.executions) {
+          reportContent += `- **执行次数**: ${action.executions}\n`
+        }
+        if (action.reason) {
+          reportContent += `- **原因**: ${action.reason}\n`
+        }
+        reportContent += `\n`
+      })
+    }
+    
+    const reportData = {
+      reportType: 'auto_execution',
+      reportTitle: 'AI自动执行建议',
+      reportContent: reportContent,
+      startDate: null,
+      endDate: null,
+      dataCount: autoExecutionAdvice.value.actions ? autoExecutionAdvice.value.actions.length : 0
+    }
+    const result = await store.saveAiReport(reportData)
+    if (result) {
+      ElMessage.success('报告保存成功')
+    } else {
+      ElMessage.error('报告保存失败')
+    }
+  } catch (error) {
+    ElMessage.error('保存报告失败: ' + error.message)
   }
 }
 
@@ -785,14 +836,25 @@ onMounted(() => {
         <template #header>
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <span>AI自动执行建议</span>
-            <el-button 
-              type="warning" 
-              size="small" 
-              :loading="loading.autoExecution"
-              @click="handleGetAutoExecutionAdvice"
-            >
-              获取执行建议
-            </el-button>
+            <div>
+              <el-button 
+                type="warning" 
+                size="small" 
+                :loading="loading.autoExecution"
+                @click="handleGetAutoExecutionAdvice"
+              >
+                获取执行建议
+              </el-button>
+              <el-button 
+                v-if="autoExecutionAdvice"
+                type="success" 
+                size="small" 
+                @click="saveAutoExecutionReport"
+                style="margin-left: 8px;"
+              >
+                保存报告
+              </el-button>
+            </div>
           </div>
         </template>
         <div v-if="autoExecutionAdvice">

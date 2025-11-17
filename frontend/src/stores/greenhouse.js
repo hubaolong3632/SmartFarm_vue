@@ -1067,6 +1067,19 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     }
   }
   
+  /**
+   * 执行AI自动执行建议的操作（推送到MQTT）
+   */
+  async function executeAiAction(action) {
+    try {
+      const data = await request.post('/ai/auto-execution-advice/execute', action, { timeout: 10000 })
+      return data !== null
+    } catch (error) {
+      console.error('执行AI操作失败:', error)
+      return false
+    }
+  }
+  
   // ========== 导出 ==========
   
   return {
@@ -1149,5 +1162,8 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     // AI自动报告
     getAutoReportEnabled,
     setAutoReportEnabled,
+    
+    // AI执行操作
+    executeAiAction
   }
 })

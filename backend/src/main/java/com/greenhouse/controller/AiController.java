@@ -3,14 +3,17 @@ package com.greenhouse.controller;
 import com.greenhouse.common.Result;
 import com.greenhouse.dto.AiReportDTO;
 import com.greenhouse.entity.AiReport;
+import com.greenhouse.entity.AiExecutionLog;
 import com.greenhouse.entity.Image;
 import com.greenhouse.entity.SensorData;
 import com.greenhouse.mapper.AiReportMapper;
+import com.greenhouse.mapper.AiExecutionLogMapper;
 import com.greenhouse.mapper.ImageMapper;
 import com.greenhouse.mapper.SensorDataMapper;
 import com.greenhouse.mapper.ExecutionLogMapper;
 import com.greenhouse.mapper.AutomationSettingMapper;
 import com.greenhouse.service.AiService;
+import com.greenhouse.service.MqttService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +44,8 @@ public class AiController {
     private final ExecutionLogMapper executionLogMapper;
     private final AutomationSettingMapper automationSettingMapper;
     private final AiReportMapper aiReportMapper;
+    private final AiExecutionLogMapper aiExecutionLogMapper;
+    private final MqttService mqttService;
     
     /**
      * 分析图片集并生成报告（流式）
@@ -865,6 +870,70 @@ public class AiController {
         });
         
         return emitter;
+    }
+    
+    /**
+     * 执行AI自动执行建议的操作（推送到MQTT）
+     */
+    @PostMapping("/auto-execution-advice/execute")
+    public Result<String> executeAiAction(@RequestBody Map<String, Object> action) {
+        try {
+            // 构建MQTT消息
+            Map<String, Object> message = new HashMap<>();
+            message.put("type", action.get("type")); // light, pump, recipe
+            message.put("action", action.get("action")); // on/off
+            message.put("reason", action.get("reason"));
+            
+            if ("recipe".equals(action.get("type"))) {
+                message.put("plotId", action.get("plotId"));
+                message.put("recipeId", action.get("recipeId"));
+                message.put("executions", action.get("executions"));
+            }
+            
+            message.put("executeTime", System.currentTimeMillis());
+            message.put("source", "ai_auto_execution");
+            
+            // 转换为JSON字符串
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            String jsonMessage = mapper.writeValueAsString(message);
+            
+            // 发送到MQTT主题 "voluntarily"
+            mqttService.publish("voluntarily", jsonMessage, 1);
+            log.info("已发送AI自动执行建议到MQTT主题 'voluntarily': {}", jsonMessage);
+
+            // 保存执行记录到数据库
+            AiExecutionLog logEntity = new AiExecutionLog();
+            Object typeObj = action.get("type");
+            logEntity.setOperationType(typeObj != null ? typeObj.toString() : null);
+            Object actionObj = action.get("action");
+            logEntity.setAction(actionObj != null ? actionObj.toString() : null);
+            Object plotIdObj = action.get("plotId");
+            if (plotIdObj != null) {
+                logEntity.setPlotId(Integer.valueOf(plotIdObj.toString()));
+            }
+            Object recipeIdObj = action.get("recipeId");
+            if (recipeIdObj != null) {
+                logEntity.setRecipeId(recipeIdObj.toString());
+            }
+            Object executionsObj = action.get("executions");
+            if (executionsObj != null) {
+                logEntity.setExecutions(Integer.valueOf(executionsObj.toString()));
+            }
+            Object reasonObj = action.get("reason");
+            if (reasonObj != null) {
+                logEntity.setReason(reasonObj.toString());
+            }
+            logEntity.setPayload(jsonMessage);
+            logEntity.setExecuteTime(new Date());
+            logEntity.setCreatedAt(new Date());
+            aiExecutionLogMapper.insert(logEntity);
+            
+            return Result.success("操作已发送到MQTT");
+            
+        } catch (Exception e) {
+            log.error("执行AI自动执行建议失败: {}", e.getMessage(), e);
+            return Result.error("执行失败: " + e.getMessage());
+        }
     }
     
     /**

@@ -60,7 +60,7 @@ public class AiService {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", model);
             requestBody.put("messages", Arrays.asList(
-                Map.of("role", "system", "content", "你是一个专业的智能温室管理AI助手，擅长分析温室数据、生成报告和提供自动化控制建议。"),
+                Map.of("role", "system", "content", "你是一个专业的智能温室管理AI助手，擅长分析温室数据、生成报告和提供自动化控制建议,所有的。但是你要注意1.所有的回答都要使用表格或图标的方式回答 2.回答的内容不能太单调 3.多有图标，少用文字回答，每隔都要用总结"),
                 Map.of("role", "user", "content", prompt)
             ));
             requestBody.put("temperature", 0.7);
@@ -115,7 +115,7 @@ public class AiService {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", model);
             requestBody.put("messages", Arrays.asList(
-                Map.of("role", "system", "content", "你是一个专业的智能温室管理AI助手，擅长分析温室数据、生成报告和提供自动化控制建议。"),
+                Map.of("role", "system", "content", "你是一个专业的智能温室管理AI助手，擅长分析温室数据、生成报告和提供自动化控制建议。但是你要注意1.所有的回答都要使用表格或图标的方式回答 2.回答的内容不能太单调 3.多有图标，少用文字回答，每隔都要用总结"),
                 Map.of("role", "user", "content", prompt)
             ));
             requestBody.put("temperature", 0.7);
@@ -176,11 +176,11 @@ public class AiService {
      */
     public String analyzeImages(List<Map<String, Object>> images) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("请分析以下温室图片数据，生成一份详细的报告。报告应包括：\n");
-        prompt.append("1. 整体环境状况评估\n");
-        prompt.append("2. 异常情况分析（温度、湿度、土壤湿度等）\n");
-        prompt.append("3. 植物生长状态评估\n");
-        prompt.append("4. 改进建议\n\n");
+        prompt.append("请分析以下温室图片数据，生成一份结构清晰的报告。报告应包括：\n");
+        prompt.append("1. 整体环境状况评估。\n");
+        prompt.append("2. 异常情况分析（温度、湿度、土壤湿度等）。\n");
+        prompt.append("3. 植物生长状态评估。\n");
+        prompt.append("4. 改进建议（给出优先级或操作建议）。\n\n");
         prompt.append("图片数据：\n");
         
         for (Map<String, Object> image : images) {
@@ -203,11 +203,11 @@ public class AiService {
      */
     public void analyzeImagesStream(List<Map<String, Object>> images, Consumer<String> onChunk, Runnable onComplete) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("请分析以下温室图片数据，生成一份详细的报告。报告应包括：\n");
-        prompt.append("1. 整体环境状况评估\n");
-        prompt.append("2. 异常情况分析（温度、湿度、土壤湿度等）\n");
-        prompt.append("3. 植物生长状态评估\n");
-        prompt.append("4. 改进建议\n\n");
+        prompt.append("请分析以下温室图片数据，生成一份结构清晰的报告。报告应包括：\n");
+        prompt.append("1. 整体环境状况评估。\n");
+        prompt.append("2. 异常情况分析（温度、湿度、土壤湿度等）。\n");
+        prompt.append("3. 植物生长状态评估。\n");
+        prompt.append("4. 改进建议（给出优先级或操作建议）。\n\n");
         prompt.append("图片数据：\n");
         
         for (Map<String, Object> image : images) {
@@ -230,11 +230,11 @@ public class AiService {
      */
     public String analyzeSensorData(List<Map<String, Object>> sensorData) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("请分析以下温室传感器数据，生成一份详细的环境分析报告。报告应包括：\n");
-        prompt.append("1. 环境趋势分析（温度、湿度、土壤湿度等变化趋势）\n");
-        prompt.append("2. 异常值识别和原因分析\n");
-        prompt.append("3. 环境健康度评估\n");
-        prompt.append("4. 优化建议和预警\n\n");
+        prompt.append("请分析以下温室传感器数据，生成一份环境分析报告。报告应包括：\n");
+        prompt.append("1. 温度、湿度、土壤湿度等主要指标的趋势和当前状态。\n");
+        prompt.append("2. 异常值识别及可能原因。\n");
+        prompt.append("3. 环境健康度评估。\n");
+        prompt.append("4. 预警与优化建议（可给出优先级）。\n\n");
         prompt.append("传感器数据：\n");
         
         for (Map<String, Object> data : sensorData) {
@@ -258,11 +258,11 @@ public class AiService {
      */
     public void analyzeSensorDataStream(List<Map<String, Object>> sensorData, Consumer<String> onChunk, Runnable onComplete) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("请分析以下温室传感器数据，生成一份详细的环境分析报告。报告应包括：\n");
-        prompt.append("1. 环境趋势分析（温度、湿度、土壤湿度等变化趋势）\n");
-        prompt.append("2. 异常值识别和原因分析\n");
-        prompt.append("3. 环境健康度评估\n");
-        prompt.append("4. 优化建议和预警\n\n");
+        prompt.append("请分析以下温室传感器数据，生成一份环境分析报告。报告应包括：\n");
+        prompt.append("1. 温度、湿度、土壤湿度等主要指标的趋势和当前状态。\n");
+        prompt.append("2. 异常值识别及可能原因。\n");
+        prompt.append("3. 环境健康度评估。\n");
+        prompt.append("4. 预警与优化建议（可给出优先级）。\n\n");
         prompt.append("传感器数据：\n");
         
         for (Map<String, Object> data : sensorData) {
@@ -286,7 +286,11 @@ public class AiService {
      */
     public String generateAutomationAdvice(Map<String, Object> currentData, Map<String, Object> automationSettings) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("基于当前温室数据和自动化设置，请提供智能控制建议。\n\n");
+        prompt.append("基于当前温室数据和自动化设置，请提供智能控制建议。报告应包括：\n");
+        prompt.append("1. 温室当前环境状态摘要。\n");
+        prompt.append("2. 与自动化阈值的对比情况。\n");
+        prompt.append("3. 优先级排序的控制建议以及预计效果。\n");
+        prompt.append("4. 如需要，给出建议的自动化策略或动作流程。\n\n");
         prompt.append("当前数据：\n");
         prompt.append(String.format(
             "温度: %s°C, 湿度: %s%%, 土壤湿度: %s%%, 光照: %s lux\n",
@@ -316,7 +320,11 @@ public class AiService {
      */
     public void generateAutomationAdviceStream(Map<String, Object> currentData, Map<String, Object> automationSettings, Consumer<String> onChunk, Runnable onComplete) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("基于当前温室数据和自动化设置，请提供智能控制建议。\n\n");
+        prompt.append("基于当前温室数据和自动化设置，请提供智能控制建议。报告应包括：\n");
+        prompt.append("1. 温室当前环境状态摘要。\n");
+        prompt.append("2. 与自动化阈值的对比情况。\n");
+        prompt.append("3. 优先级排序的控制建议以及预计效果。\n");
+        prompt.append("4. 如需要，给出建议的自动化策略或动作流程。\n\n");
         prompt.append("当前数据：\n");
         prompt.append(String.format(
             "温度: %s°C, 湿度: %s%%, 土壤湿度: %s%%, 光照: %s lux\n",
@@ -351,7 +359,11 @@ public class AiService {
             Map<String, Object> automationSettings) {
         
         StringBuilder prompt = new StringBuilder();
-        prompt.append("请基于以下温室数据生成一份综合管理报告：\n\n");
+        prompt.append("请基于以下温室数据生成一份综合管理报告。报告应包括：\n");
+        prompt.append("1. 图片、传感器数据、执行日志的摘要。\n");
+        prompt.append("2. 关键指标的对比与异常说明。\n");
+        prompt.append("3. 综合研判与风险分析。\n");
+        prompt.append("4. 行动计划（可给出优先级和建议步骤）。\n\n");
         
         prompt.append("1. 图片数据（最近记录）：\n");
         int imageCount = Math.min(images.size(), 10);
@@ -415,7 +427,11 @@ public class AiService {
             Runnable onComplete) {
         
         StringBuilder prompt = new StringBuilder();
-        prompt.append("请基于以下温室数据生成一份综合管理报告：\n\n");
+        prompt.append("请基于以下温室数据生成一份综合管理报告。报告应包括：\n");
+        prompt.append("1. 图片、传感器数据、执行日志的摘要。\n");
+        prompt.append("2. 关键指标的对比与异常说明。\n");
+        prompt.append("3. 综合研判与风险分析。\n");
+        prompt.append("4. 行动计划（可给出优先级和建议步骤）。\n\n");
         
         prompt.append("1. 图片数据（最近记录）：\n");
         int imageCount = Math.min(images.size(), 10);
@@ -483,7 +499,7 @@ public class AiService {
             currentData.get("oxygenPct"),
             currentData.get("co2Ppm")
         ));
-        prompt.append("\n请以JSON格式返回建议，格式如下：\n");
+        prompt.append("\n请以JSON格式返回建议，格式如下（summary 字段可使用简洁的 Markdown 文字描述要点，无需图形）：\n");
         prompt.append("{\n");
         prompt.append("  \"actions\": [\n");
         prompt.append("    {\"type\": \"light\", \"action\": \"on/off\", \"reason\": \"原因\"},\n");

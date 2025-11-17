@@ -192,6 +192,24 @@ CREATE TABLE IF NOT EXISTS `control_logs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='控制操作日志表';
 
 -- ============================================================
+-- 11. AI执行操作日志表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `ai_execution_logs` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+  `operation_type` VARCHAR(50) NOT NULL COMMENT '操作类型（light/pump/recipe）',
+  `action` VARCHAR(50) DEFAULT NULL COMMENT '动作（on/off等）',
+  `plot_id` INT UNSIGNED DEFAULT NULL COMMENT '地块ID',
+  `recipe_id` VARCHAR(100) DEFAULT NULL COMMENT '配方ID',
+  `executions` INT UNSIGNED DEFAULT NULL COMMENT '执行次数',
+  `reason` VARCHAR(255) DEFAULT NULL COMMENT 'AI建议原因',
+  `payload` TEXT DEFAULT NULL COMMENT '原始MQTT消息内容',
+  `execute_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '执行时间',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  INDEX `idx_operation_type` (`operation_type`),
+  INDEX `idx_execute_time` (`execute_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI自动执行操作日志表';
+
+-- ============================================================
 -- 初始化数据
 -- ============================================================
 
