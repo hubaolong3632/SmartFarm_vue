@@ -9,12 +9,12 @@ import { useGreenhouseStore } from '../stores/greenhouse'
 
 const store = useGreenhouseStore()
 
-onMounted(async () => {
-  // 加载所有数据
-  await store.loadAllData()
-  await store.loadExecutionsLast24()
-  // 开始数据轮询
+onMounted(() => {
+  // 立即开始数据轮询，数据在后台加载
   store.startSimulation()
+  // 异步加载数据，不阻塞界面渲染
+  store.loadAllData().catch(err => console.error('加载数据失败:', err))
+  store.loadExecutionsLast24().catch(err => console.error('加载执行日志失败:', err))
 })
 
 onUnmounted(() => {

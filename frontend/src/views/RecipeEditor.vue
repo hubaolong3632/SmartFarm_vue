@@ -3,9 +3,9 @@ import { ref, onMounted } from 'vue'
 import { useGreenhouseStore } from '../stores/greenhouse'
 const store = useGreenhouseStore()
 
-onMounted(async () => {
-  // 加载配方列表
-  await store.loadRecipes()
+onMounted(() => {
+  // 异步加载配方列表，不阻塞界面渲染
+  store.loadRecipes().catch(err => console.error('加载配方失败:', err))
 })
 
 const form = ref({
