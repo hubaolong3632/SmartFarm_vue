@@ -360,10 +360,15 @@ public class AiService {
         
         StringBuilder prompt = new StringBuilder();
         prompt.append("请基于以下温室数据生成一份综合管理报告。报告应包括：\n");
-        prompt.append("1. 图片、传感器数据、执行日志的摘要。\n");
-        prompt.append("2. 关键指标的对比与异常说明。\n");
-        prompt.append("3. 综合研判与风险分析。\n");
-        prompt.append("4. 行动计划（可给出优先级和建议步骤）。\n\n");
+        prompt.append("1. 以表格形式给出关键环境指标（温度/湿度/土壤/光照/氧气/CO2）的当前值、正常区间、状态（正常/偏低/偏高）。\n");
+        prompt.append("2. 给出植物总体状态说明：是否健康、是否出现萎蔫/叶片发黄等现象，以及今日与昨日的差异。\n");
+        prompt.append("3. 逐项指出潜在问题（如“温度偏低”“光照不足”“抽水频率异常”），并用文字说明可能原因和影响。\n");
+        prompt.append("4. 给出综合总结：\n");
+        prompt.append("   - 植物今日整体状态（良好/需关注/不良）\n");
+        prompt.append("   - 主要风险点（最多列出3个）\n");
+        prompt.append("   - 建议的处理优先级（高/中/低）及具体行动\n");
+        prompt.append("5. 行动计划部分需列出“立即/短期/长期”建议，并说明预计效果。\n");
+        prompt.append("6. 用简明语言收尾总结今日的发现和需要跟进的项目。\n\n");
         
         prompt.append("1. 图片数据（最近记录）：\n");
         int imageCount = Math.min(images.size(), 10);
@@ -428,10 +433,15 @@ public class AiService {
         
         StringBuilder prompt = new StringBuilder();
         prompt.append("请基于以下温室数据生成一份综合管理报告。报告应包括：\n");
-        prompt.append("1. 图片、传感器数据、执行日志的摘要。\n");
-        prompt.append("2. 关键指标的对比与异常说明。\n");
-        prompt.append("3. 综合研判与风险分析。\n");
-        prompt.append("4. 行动计划（可给出优先级和建议步骤）。\n\n");
+        prompt.append("1. 以表格形式给出关键环境指标（温度/湿度/土壤/光照/氧气/CO2）的当前值、正常区间、状态（正常/偏低/偏高）。\n");
+        prompt.append("2. 给出植物总体状态说明：是否健康、是否出现萎蔫/叶片发黄等现象，以及今日与昨日的差异。\n");
+        prompt.append("3. 逐项指出潜在问题（如“温度偏低”“光照不足”“抽水频率异常”），并用文字说明可能原因和影响。\n");
+        prompt.append("4. 给出综合总结：\n");
+        prompt.append("   - 植物今日整体状态（良好/需关注/不良）\n");
+        prompt.append("   - 主要风险点（最多列出3个）\n");
+        prompt.append("   - 建议的处理优先级（高/中/低）及具体行动\n");
+        prompt.append("5. 行动计划部分需列出“立即/短期/长期”建议，并说明预计效果。\n");
+        prompt.append("6. 用简明语言收尾总结今日的发现和需要跟进的项目。\n\n");
         
         prompt.append("1. 图片数据（最近记录）：\n");
         int imageCount = Math.min(images.size(), 10);
