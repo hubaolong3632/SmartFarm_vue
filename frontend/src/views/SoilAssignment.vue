@@ -3,14 +3,14 @@ import { computed, ref, reactive, watchEffect, onMounted } from 'vue'
 import { useGreenhouseStore } from '../stores/greenhouse'
 const store = useGreenhouseStore()
 
-onMounted(async () => {
-  // 加载相关数据
-  await Promise.all([
+onMounted(() => {
+  // 异步加载相关数据，不阻塞界面渲染
+  Promise.all([
     store.loadRecipes(),
     store.loadPlotAssignments(),
     store.loadPlotSchedules(),
     store.loadExecutionLogs(),
-  ])
+  ]).catch(err => console.error('加载数据失败:', err))
 })
 
 const plots = computed(() => Array.from({ length: store.numPlots }, (_, i) => i + 1))

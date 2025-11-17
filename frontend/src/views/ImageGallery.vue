@@ -27,11 +27,12 @@ async function loadAbnormal() {
 }
 
 // 组件挂载时加载今天的图片
-onMounted(async () => {
+onMounted(() => {
   const today = new Date().toISOString().split('T')[0]
   store.selectedDate = today
   pendingDate.value = today
-  await store.loadImagesByDate(today)
+  // 异步加载图片，不阻塞界面渲染
+  store.loadImagesByDate(today).catch(err => console.error('加载图片失败:', err))
 })
 
 const images = computed(() => {

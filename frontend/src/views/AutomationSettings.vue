@@ -4,9 +4,9 @@ import { useGreenhouseStore } from '../stores/greenhouse'
 import { ElMessage } from 'element-plus'
 const store = useGreenhouseStore()
 
-onMounted(async () => {
-  // 加载自动化设置
-  await store.loadAutomationSettings()
+onMounted(() => {
+  // 异步加载自动化设置，不阻塞界面渲染
+  store.loadAutomationSettings().catch(err => console.error('加载自动化设置失败:', err))
 })
 
 async function saveAutomation() {
