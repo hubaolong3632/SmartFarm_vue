@@ -50,6 +50,11 @@ const images = computed(() => {
   return []
 })
 
+// 图片预览相关 - 生成预览图片列表
+const previewImageList = computed(() => {
+  return images.value.map(img => img.url)
+})
+
 function isAbnormal(img) {
   // 如果数据库已标记为异常，直接使用
   if (img.isAbnormal) {
@@ -78,10 +83,6 @@ function isAbnormal(img) {
   }
 }
 
-function handleImageError(event) {
-  // 图片加载失败时的处理
-  event.target.src = 'https://placehold.co/320x200?text=图片加载失败'
-}
 </script>
 
 <template>
@@ -112,13 +113,21 @@ function handleImageError(event) {
           :style="isAbnormal(img).flag ? 'background:#ffcccc;' : ''"
         >
           <div style="position: relative;">
-            <img 
-              :src="img.url" 
-              alt="" 
-              style="width: 100%; height: 200px; object-fit: cover; display: block; border-radius: 4px;"
-              @error="handleImageError"
-              onerror="this.src='https://placehold.co/320x200?text=图片加载失败'"
-            />
+            <el-image
+              :src="img.url"
+              :preview-src-list="previewImageList"
+              :initial-index="idx"
+              fit="cover"
+              style="width: 100%; height: 200px; border-radius: 4px; cursor: pointer;"
+              :preview-teleported="true"
+              lazy
+            >
+              <template #error>
+                <div style="width: 100%; height: 200px; display: flex; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 4px;">
+                  <span style="color: #999;">图片加载失败</span>
+                </div>
+              </template>
+            </el-image>
             <div v-if="isAbnormal(img).flag"
                  style="
                    position:absolute;
