@@ -97,4 +97,54 @@ public class AutomationController {
         }
         return Result.success(value);
     }
+
+
+
+
+
+    /**
+     * 获取设置的时间秒数
+     */
+    @GetMapping("/time")
+    public Object time() {
+        String key="imageUploadIntervalSeconds";
+        AutomationSetting setting = automationSettingMapper.findBySettingKey(key);
+        if (setting == null) {
+            return "99999";
+        }
+        Object value = setting.getSettingValue();
+        if ("true".equals(value) || "false".equals(value)) {
+            value = Boolean.parseBoolean(setting.getSettingValue());
+        } else {
+            try {
+                value = Integer.parseInt(setting.getSettingValue());
+            } catch (NumberFormatException e) {
+                // 保持原值
+            }
+        }
+        return value;
+    }
+    
+    /**
+     * 获取图片上传间隔时间对应的秒数
+     * @param hours 小时数（1-24），可选
+     * @param seconds 秒数，可选
+     * @return 对应的秒数
+     */
+    @GetMapping("/image-upload-interval-seconds")
+    public Result<Long> getImageUploadIntervalSeconds(
+            @RequestParam(required = false) Integer hours,
+            @RequestParam(required = false) Long seconds) {
+        // 如果提供了秒数，直接返回
+        if (seconds != null && seconds > 0) {
+            return Result.success(seconds);
+        }
+        // 如果提供了小时数，转换为秒数
+        if (hours != null && hours >= 1 && hours <= 24) {
+            long result = hours * 3600L;
+            return Result.success(result);
+        }
+        // 参数无效
+        return Result.error(400, "请提供有效的小时数（1-24）或秒数（>0）");
+    }
 }

@@ -5,13 +5,28 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ad2c58aa-eedd-48f9-ae33-5a7292b921cd" name="更改" comment="所有文件">
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/dto/UnifiedReportDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/target/classes/com/greenhouse/dto/UnifiedReportDTO.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/controller/AiController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/controller/AiController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/target/classes/com/greenhouse/controller/AiController.class" beforeDir="false" afterPath="$PROJECT_DIR$/backend/target/classes/com/greenhouse/controller/AiController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.vue" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/views/AiReportHistory.vue" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/views/AiReportHistory.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/controller/AutomationController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/controller/AutomationController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/controller/ImageController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/controller/ImageController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/resources/application-dev.yml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/application-dev.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/resources/application-prod.yml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/application-prod.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/target/classes/application-dev.yml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/target/classes/application-dev.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/target/classes/application-prod.yml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/target/classes/application-prod.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/target/classes/com/greenhouse/controller/ImageController.class" beforeDir="false" afterPath="$PROJECT_DIR$/backend/target/classes/com/greenhouse/controller/ImageController.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/AiAnalysis-D9yjF3Cj.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/AiReportHistory-Dn-VdmLx.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/AiReportHistory-Mk3fUEvq.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/AutomationSettings-KbyFJqki.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/Dashboard-D_SGlurR.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/ImageGallery-ChPswhz0.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/RecipeEditor-BqYpCMjZ.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/SoilAssignment-DIjOhEl_.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/greenhouse-BCQSKyGR.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-Bfm5HTqy.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-BpdK14oB.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/dist/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/stores/greenhouse.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/stores/greenhouse.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/views/AutomationSettings.vue" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/views/AutomationSettings.vue" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -67,7 +82,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected="Spring Boot.GreenhouseApplication">
+  <component name="RunManager" selected="npm.dev">
     <configuration name="GreenhouseApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <module name="greenhouse-api" />
       <option name="SPRING_BOOT_MAIN_CLASS" value="com.greenhouse.GreenhouseApplication" />
@@ -119,7 +134,7 @@
       <updated>1763012164517</updated>
       <workItem from="1763012166137" duration="41364000" />
       <workItem from="1763443056509" duration="142000" />
-      <workItem from="1763444470628" duration="10978000" />
+      <workItem from="1763444470628" duration="14576000" />
     </task>
     <task id="LOCAL-00001" summary="c1">
       <option name="closed" value="true" />
@@ -465,7 +480,15 @@
       <option name="project" value="LOCAL" />
       <updated>1763524261155</updated>
     </task>
-    <option name="localTasksCounter" value="44" />
+    <task id="LOCAL-00044" summary="所有文件">
+      <option name="closed" value="true" />
+      <created>1763524871917</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1763524871917</updated>
+    </task>
+    <option name="localTasksCounter" value="45" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

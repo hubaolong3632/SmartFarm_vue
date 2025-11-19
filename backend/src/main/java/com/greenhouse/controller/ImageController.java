@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -66,7 +67,7 @@ public class ImageController {
      */
     @PostMapping("/file")
     @Transactional
-    public Result<Image> uploadFile(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
+    public Result<Image> uploadFile(@RequestParam(value = "http", defaultValue = "false") Boolean http,@RequestParam("file") MultipartFile file, HttpServletRequest request) {
         if (file.isEmpty()) {
             return Result.error("上传的文件为空");
         }
@@ -81,13 +82,27 @@ public class ImageController {
             long currentTimeMillis = System.currentTimeMillis();
             String fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
             String fileName = currentTimeMillis + fileExtension;
-            
-            // 2. 配置文件存储路径
-            String basePath = System.getProperty("user.dir") + "/file/1/";
+
+
+
+
+
+
+            // 2. 配置文件存储路径（按年/月/日划分）
+            LocalDate today = LocalDate.now(); // 获取当前日期
+            int year = today.getYear();
+            int month = today.getMonthValue(); // 月份是1-12
+            int day = today.getDayOfMonth();
+            String file_day="/file/" + year + "/" + month + "/" + day + "/";  //封装时间路径
+
+            String basePath = System.getProperty("user.dir")+file_day;
+
             File storageDir = new File(basePath);
             if (!storageDir.exists()) {
-                storageDir.mkdirs(); // 递归创建目录
+                storageDir.mkdirs(); // 递归创建目录（会自动创建年/月/日各级目录）
             }
+
+
 
             // 3. 保存文件到服务器
             Path targetPath = Paths.get(basePath + fileName);
@@ -99,7 +114,14 @@ public class ImageController {
             // 获取 context-path（如果有配置的话，如 /api）
             String contextPath = request.getContextPath();
             // 构建完整的文件访问URL
-            String fileContextPath = contextPath + "/file/1/";
+            String fileContextPath = contextPath + file_day ;
+
+            if(http==false){
+                serverUrl="https://smartfarmservice.00000.work";
+            }
+            System.out.println("请求路径："+serverUrl);
+            System.out.println("请求路径2："+fileContextPath + fileName);
+
             String fileAccessUrl = serverUrl + fileContextPath + fileName;
 
             log.info("文件上传成功: {} -> {}", originalFileName, fileAccessUrl);

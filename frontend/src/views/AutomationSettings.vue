@@ -12,15 +12,54 @@ import {
   SuccessFilled as WaterIcon,
   WarningFilled as WindPowerIcon,
   Warning as WarningIcon,
-  Check as CheckIcon
+  Check as CheckIcon,
+  Picture as PictureIcon
 } from '@element-plus/icons-vue'
 
 const store = useGreenhouseStore()
 
-onMounted(() => {
+onMounted(async () => {
   // 异步加载自动化设置，不阻塞界面渲染
-  store.loadAutomationSettings().catch(err => console.error('加载自动化设置失败:', err))
+  try {
+    await store.loadAutomationSettings()
+  } catch (err) {
+    console.error('加载自动化设置失败:', err)
+  }
 })
+
+// 间隔时间选项配置（秒数和显示标签）
+const intervalOptions = [
+  { value: 60, label: '1分钟' },
+  { value: 600, label: '10分钟' },
+  { value: 1800, label: '30分钟' },
+  ...Array.from({ length: 24 }, (_, i) => ({
+    value: (i + 1) * 3600,
+    label: `${i + 1}小时`
+  }))
+]
+
+// 监听间隔时间变化
+function onIntervalChange() {
+  // 值已经直接存储在 store.automation.imageUploadIntervalSeconds 中
+  // 可以在这里添加额外的逻辑，比如调用后端接口验证
+}
+
+// 格式化间隔时间显示
+function formatIntervalTime(seconds) {
+  if (seconds < 3600) {
+    // 小于1小时，显示分钟
+    const minutes = Math.floor(seconds / 60)
+    return `${minutes}分钟`
+  } else {
+    // 大于等于1小时，显示小时和分钟
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    if (minutes === 0) {
+      return `${hours}小时`
+    }
+    return `${hours}小时${minutes}分钟`
+  }
+}
 
 async function saveAutomation() {
   try {
@@ -483,6 +522,42 @@ function getThresholdStatus(value, type, isHigh = true) {
                 size="small"
               >
                 {{ getThresholdStatus(store.automation.co2HighThreshold, 'co2') === 'danger' ? '超限' : '正常' }}
+              </el-tag>
+            </div>
+          </div>
+        </el-col>
+
+        <!-- 图片上传间隔时间 -->
+        <el-col :md="12" :xs="24">
+          <div class="threshold-item">
+            <div class="threshold-header">
+              <div class="threshold-icon-wrapper">
+                <el-icon class="threshold-icon"><PictureIcon /></el-icon>
+              </div>
+              <div class="threshold-info">
+                <div class="threshold-title">图片上传间隔时间</div>
+                <div class="threshold-desc">设置图片自动上传的时间间隔</div>
+              </div>
+            </div>
+            <div class="threshold-input">
+              <el-select 
+                v-model="store.automation.imageUploadIntervalSeconds" 
+                @change="onIntervalChange"
+                size="large"
+                style="width: 100%;"
+              >
+                <el-option 
+                  v-for="option in intervalOptions" 
+                  :key="option.value" 
+                  :label="option.label" 
+                  :value="option.value"
+                />
+              </el-select>
+            </div>
+            <div class="threshold-status">
+              <span class="status-text">对应秒数: {{ store.automation.imageUploadIntervalSeconds }} 秒</span>
+              <el-tag type="info" size="small">
+                {{ formatIntervalTime(store.automation.imageUploadIntervalSeconds) }}
               </el-tag>
             </div>
           </div>

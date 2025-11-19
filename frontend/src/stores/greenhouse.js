@@ -45,6 +45,7 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     co2HighThreshold: 1000,
     autoLightEnabled: true,
     autoPumpEnabled: true,
+    imageUploadIntervalSeconds: 3600, // 图片上传间隔时间（秒），默认1小时
   })
   
   // 图片数据
@@ -415,6 +416,7 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
           co2HighThreshold: Number(data.co2HighThreshold || 1000),
           autoLightEnabled: data.autoLightEnabled !== false,
           autoPumpEnabled: data.autoPumpEnabled !== false,
+          imageUploadIntervalSeconds: Number(data.imageUploadIntervalSeconds || data.imageUploadIntervalHours * 3600 || 3600),
         }
       }
     } catch (error) {
