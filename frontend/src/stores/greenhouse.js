@@ -51,6 +51,7 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   const imagesByDate = ref({})
   const selectedDate = ref(new Date().toISOString().slice(0, 10))
   const images = ref([])
+  const latestImage = ref(null) // 最新图片
   
   // ========== 计算属性 ==========
   
@@ -474,12 +475,51 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
           isAbnormal: item.isAbnormal || false,
           abnormalReason: item.abnormalReason,
         }))
+        // 更新最新图片
+        if (images.value.length > 0) {
+          latestImage.value = images.value[0]
+        }
       } else {
         images.value = []
       }
     } catch (error) {
       console.error('加载所有图片失败:', error)
       images.value = []
+    }
+  }
+  
+  /**
+   * 加载最新图片
+   */
+  async function loadLatestImage() {
+    try {
+      const data = await request.get('/images')
+      if (data && Array.isArray(data) && data.length > 0) {
+        // 按时间排序，获取最新的
+        const sorted = data.sort((a, b) => {
+          const timeA = new Date(a.recordTime || a.time || 0).getTime()
+          const timeB = new Date(b.recordTime || b.time || 0).getTime()
+          return timeB - timeA
+        })
+        const latest = sorted[0]
+        latestImage.value = {
+          id: latest.id,
+          time: latest.recordTime || latest.time,
+          url: formatImageUrl(latest.imageUrl || latest.url),
+          temperatureC: Number(latest.temperatureC || 0),
+          humidityPct: Number(latest.humidityPct || 0),
+          soilMoisturePct: Number(latest.soilMoisturePct || 0),
+          lightLux: Number(latest.lightLux || 0),
+          isRaining: latest.isRaining ? true : false,
+          oxygenPct: Number(latest.oxygenPct || 0),
+          co2Ppm: Number(latest.co2Ppm || 0),
+          plotId: latest.plotId,
+          isAbnormal: latest.isAbnormal || false,
+          abnormalReason: latest.abnormalReason,
+        }
+      }
+    } catch (error) {
+      console.error('加载最新图片失败:', error)
     }
   }
   
@@ -882,6 +922,7 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     otherTimer = setInterval(async () => {
       await loadExecutionLogs()
       await loadAlerts()
+      await loadLatestImage() // 每5秒刷新最新图片
       evaluateAutomation()
     }, 5000) // 每5秒刷新一次
   }
@@ -1105,8 +1146,10 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     imagesByDate,
     selectedDate,
     images,
+    latestImage,
     loadAllImages,
     loadAbnormalImages,
+    loadLatestImage,
     executionLogs,
     executionsLast24,
     
