@@ -36,6 +36,7 @@ com\greenhouse\dto\PlotScheduleDTO.class
 com\greenhouse\controller\SensorDataController.class
 com\greenhouse\common\Result.class
 com\greenhouse\service\SensorDataService.class
+com\greenhouse\config\JwtInterceptor.class
 com\greenhouse\mapper\ControlLogMapper.class
 com\greenhouse\config\EmqxConfig.class
 com\greenhouse\controller\RecipeController.class

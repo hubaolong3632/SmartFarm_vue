@@ -11,6 +11,7 @@ D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\PlotController.j
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\AiHostingController.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\ControlLogMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\ExecutionLogMapper.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\dto\LoginDTO.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\ImageMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\Recipe.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\service\AiService.java
@@ -19,9 +20,12 @@ D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\RecipeController
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\AutomationController.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\service\SensorDataService.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\SensorData.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\util\JwtUtil.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\config\EmqxConfig.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\ExecutionLogController.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\User.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\common\GlobalExceptionHandler.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\AuthController.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\AiReportMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\service\AiReportScheduleService.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\Alert.java
@@ -34,9 +38,12 @@ D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\AiReport.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\RecipeMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\AiHostingConfig.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\AiHostingLog.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\config\JwtConfig.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\dto\LoginResponseDTO.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\PlotMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\PlotSchedule.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\SensorDataController.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\service\UserService.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\PlotAssignmentMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\dto\RecipeDTO.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\Plot.java
@@ -45,6 +52,7 @@ D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\ExecutionLog.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\AiHostingConfigMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\AlertMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\GreenhouseApplication.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\config\JwtInterceptor.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\service\AiHostingService.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\service\EmailService.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\ControlLog.java
@@ -56,6 +64,7 @@ D:\vue\vue_text\backend\src\main\java\com\greenhouse\service\ScheduleTaskService
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\service\RecipeService.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\SensorDataMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\dto\PlotAssignmentDTO.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\UserMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\config\WebConfig.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\AutomationSettingMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\AiHostingLogMapper.java

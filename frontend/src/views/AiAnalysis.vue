@@ -437,6 +437,11 @@ const apiBase = import.meta.env.VITE_API_BASE_URL || '/api'
 
 function buildSseUrl(path, params = {}) {
   const base = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase
+  // 为SSE请求添加token参数（EventSource不支持自定义header）
+  const token = localStorage.getItem('jwt')
+  if (token) {
+    params.token = token
+  }
   const finalPath = path.startsWith('/') ? path : `/${path}`
   const url = new URL(`${base}${finalPath}`, window.location.origin)
   Object.entries(params).forEach(([key, value]) => {
@@ -530,13 +535,15 @@ async function handleAnalyzeAll() {
     const endDate = dateRange.value && dateRange.value.length > 1 ? formatDate(dateRange.value[1]) : null
     
     const baseURL = apiBase
+    const token = localStorage.getItem('jwt')
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : ''
     
     // 同时调用5个流式接口
     const eventSources = []
     const completedTasks = { count: 0, total: 5 }
     
     // 1. 图片分析
-    let imageUrl = `${baseURL}/ai/analyze-images-stream?limit=30`
+    let imageUrl = `${baseURL}/ai/analyze-images-stream?limit=30${tokenParam}`
     if (startDate && endDate) {
       imageUrl += `&startDate=${startDate}&endDate=${endDate}`
     }
@@ -575,7 +582,7 @@ async function handleAnalyzeAll() {
     eventSources.push(es1)
     
     // 2. 传感器数据分析
-    let sensorUrl = `${baseURL}/ai/analyze-sensor-data-stream?limit=30`
+    let sensorUrl = `${baseURL}/ai/analyze-sensor-data-stream?limit=30${tokenParam}`
     if (startDate && endDate) {
       sensorUrl += `&startDate=${startDate}&endDate=${endDate}`
     }
@@ -614,7 +621,7 @@ async function handleAnalyzeAll() {
     eventSources.push(es2)
     
     // 3. 自动化建议
-    const es3 = new EventSource(`${baseURL}/ai/automation-advice-stream`)
+    const es3 = new EventSource(`${baseURL}/ai/automation-advice-stream${tokenParam ? '?' + tokenParam.substring(1) : ''}`)
     let automationContent = ''
     es3.addEventListener('start', () => {
       analyzeProgress.value.automation_advice = true
@@ -651,7 +658,9 @@ async function handleAnalyzeAll() {
     // 4. 综合报告
     let comprehensiveUrl = `${baseURL}/ai/comprehensive-report-stream`
     if (startDate && endDate) {
-      comprehensiveUrl += `?startDate=${startDate}&endDate=${endDate}`
+      comprehensiveUrl += `?startDate=${startDate}&endDate=${endDate}${tokenParam}`
+    } else {
+      comprehensiveUrl += tokenParam ? `?${tokenParam.substring(1)}` : ''
     }
     const es4 = new EventSource(comprehensiveUrl)
     let comprehensiveContent = ''
@@ -688,7 +697,7 @@ async function handleAnalyzeAll() {
     eventSources.push(es4)
     
     // 5. AI自动执行建议
-    const es5 = new EventSource(`${baseURL}/ai/auto-execution-advice-stream`)
+    const es5 = new EventSource(`${baseURL}/ai/auto-execution-advice-stream${tokenParam ? '?' + tokenParam.substring(1) : ''}`)
     let autoExecutionContent = ''
     es5.addEventListener('start', () => {
       analyzeProgress.value.auto_execution = true
