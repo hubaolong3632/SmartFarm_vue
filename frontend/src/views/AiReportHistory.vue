@@ -30,7 +30,8 @@ const reportTypes = [
   { label: '传感器数据分析', value: 'sensor_analysis' },
   { label: '自动化建议', value: 'automation_advice' },
   { label: '综合报告', value: 'comprehensive_report' },
-  { label: '自动执行建议', value: 'auto_execution' }
+  { label: '自动执行建议', value: 'auto_execution' },
+  { label: 'AI托管执行', value: 'ai_hosting_execution' }
 ]
 
 // 加载报告列表
@@ -87,7 +88,8 @@ function getReportTypeName(type) {
     'sensor_analysis': '传感器数据分析',
     'automation_advice': '自动化建议',
     'comprehensive_report': '综合报告',
-    'auto_execution': '自动执行建议'
+    'auto_execution': '自动执行建议',
+    'ai_hosting_execution': 'AI托管执行'
   }
   return typeMap[type] || type
 }
@@ -179,15 +181,27 @@ onMounted(() => {
           </template>
         </el-table-column>
         <el-table-column prop="reportTitle" label="标题" min-width="200" show-overflow-tooltip />
-        <el-table-column label="数据日期" width="200">
+        <el-table-column label="数据日期/执行时间" width="200">
           <template #default="{ row }">
-            <span v-if="row.startDate && row.endDate">
+            <span v-if="row.sourceType === 'ai_hosting_log'">
+              {{ formatDate(row.executionTime) }}
+            </span>
+            <span v-else-if="row.startDate && row.endDate">
               {{ formatDate(row.startDate) }} 至 {{ formatDate(row.endDate) }}
             </span>
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="dataCount" label="数据条数" width="100" />
+        <el-table-column label="数据条数/状态" width="120">
+          <template #default="{ row }">
+            <span v-if="row.sourceType === 'ai_hosting_log'">
+              <el-tag :type="row.status === 'success' ? 'success' : row.status === 'failed' ? 'danger' : 'warning'" size="small">
+                {{ row.status || '-' }}
+              </el-tag>
+            </span>
+            <span v-else>{{ row.dataCount || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="创建时间" width="180">
           <template #default="{ row }">
             {{ formatDate(row.createdAt) }}
@@ -196,7 +210,16 @@ onMounted(() => {
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="viewReport(row)">查看</el-button>
-            <el-button link type="danger" size="small" @click="deleteReport(row.id)">删除</el-button>
+            <el-button 
+              v-if="row.sourceType !== 'ai_hosting_log'" 
+              link 
+              type="danger" 
+              size="small" 
+              @click="deleteReport(row.id)"
+            >
+              删除
+            </el-button>
+            <span v-else style="color: #999; font-size: 12px;">托管日志</span>
           </template>
         </el-table-column>
       </el-table>
@@ -217,14 +240,30 @@ onMounted(() => {
           <el-descriptions-item label="标题">
             {{ selectedReport.reportTitle || '-' }}
           </el-descriptions-item>
-          <el-descriptions-item label="数据日期">
-            <span v-if="selectedReport.startDate && selectedReport.endDate">
+          <el-descriptions-item :label="selectedReport.sourceType === 'ai_hosting_log' ? '执行时间' : '数据日期'">
+            <span v-if="selectedReport.sourceType === 'ai_hosting_log'">
+              {{ formatDate(selectedReport.executionTime) }}
+            </span>
+            <span v-else-if="selectedReport.startDate && selectedReport.endDate">
               {{ formatDate(selectedReport.startDate) }} 至 {{ formatDate(selectedReport.endDate) }}
             </span>
             <span v-else>-</span>
           </el-descriptions-item>
-          <el-descriptions-item label="数据条数">
+          <el-descriptions-item v-if="selectedReport.sourceType === 'ai_hosting_log'" label="执行状态">
+            <el-tag :type="selectedReport.status === 'success' ? 'success' : selectedReport.status === 'failed' ? 'danger' : 'warning'">
+              {{ selectedReport.status || '-' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item v-if="selectedReport.sourceType === 'ai_hosting_log' && selectedReport.executionDurationMs" label="执行耗时">
+            {{ selectedReport.executionDurationMs }} 毫秒
+          </el-descriptions-item>
+          <el-descriptions-item v-if="selectedReport.sourceType !== 'ai_hosting_log'" label="数据条数">
             {{ selectedReport.dataCount || 0 }}
+          </el-descriptions-item>
+          <el-descriptions-item v-if="selectedReport.sourceType === 'ai_hosting_log' && selectedReport.emailSent" label="邮件发送">
+            <el-tag :type="selectedReport.emailSent ? 'success' : 'info'" size="small">
+              {{ selectedReport.emailSent ? '已发送' : '未发送' }}
+            </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="创建时间">
             {{ formatDate(selectedReport.createdAt) }}

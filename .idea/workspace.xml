@@ -5,23 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ad2c58aa-eedd-48f9-ae33-5a7292b921cd" name="更改" comment="所有文件">
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/controller/AiHostingController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/entity/AiHostingConfig.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/entity/AiHostingLog.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/mapper/AiHostingConfigMapper.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/mapper/AiHostingLogMapper.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/service/AiHostingService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/service/EmailService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/dto/UnifiedReportDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/target/classes/com/greenhouse/dto/UnifiedReportDTO.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/mapper/ImageMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/mapper/ImageMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/mapper/SensorDataMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/mapper/SensorDataMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/service/AiService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/service/AiService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/resources/application-dev.yml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/application-dev.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/target/classes/application-dev.yml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/target/classes/application-dev.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/controller/AiController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/controller/AiController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/target/classes/com/greenhouse/controller/AiController.class" beforeDir="false" afterPath="$PROJECT_DIR$/backend/target/classes/com/greenhouse/controller/AiController.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/App.vue" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/router/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/router/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/stores/greenhouse.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/stores/greenhouse.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/views/AiReportHistory.vue" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/views/AiReportHistory.vue" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -129,7 +119,7 @@
       <updated>1763012164517</updated>
       <workItem from="1763012166137" duration="41364000" />
       <workItem from="1763443056509" duration="142000" />
-      <workItem from="1763444470628" duration="10058000" />
+      <workItem from="1763444470628" duration="10978000" />
     </task>
     <task id="LOCAL-00001" summary="c1">
       <option name="closed" value="true" />
@@ -459,7 +449,23 @@
       <option name="project" value="LOCAL" />
       <updated>1763522609996</updated>
     </task>
-    <option name="localTasksCounter" value="42" />
+    <task id="LOCAL-00042" summary="所有文件">
+      <option name="closed" value="true" />
+      <created>1763524234458</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1763524234458</updated>
+    </task>
+    <task id="LOCAL-00043" summary="所有文件">
+      <option name="closed" value="true" />
+      <created>1763524261155</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1763524261155</updated>
+    </task>
+    <option name="localTasksCounter" value="44" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

@@ -2,14 +2,17 @@ package com.greenhouse.controller;
 
 import com.greenhouse.common.Result;
 import com.greenhouse.dto.AiReportDTO;
+import com.greenhouse.dto.UnifiedReportDTO;
 import com.greenhouse.entity.AiReport;
 import com.greenhouse.entity.AiExecutionLog;
+import com.greenhouse.entity.AiHostingLog;
 import com.greenhouse.entity.Image;
 import com.greenhouse.entity.Plot;
 import com.greenhouse.entity.Recipe;
 import com.greenhouse.entity.SensorData;
 import com.greenhouse.mapper.AiReportMapper;
 import com.greenhouse.mapper.AiExecutionLogMapper;
+import com.greenhouse.mapper.AiHostingLogMapper;
 import com.greenhouse.mapper.ImageMapper;
 import com.greenhouse.mapper.SensorDataMapper;
 import com.greenhouse.mapper.ExecutionLogMapper;
@@ -49,6 +52,7 @@ public class AiController {
     private final AutomationSettingMapper automationSettingMapper;
     private final AiReportMapper aiReportMapper;
     private final AiExecutionLogMapper aiExecutionLogMapper;
+    private final AiHostingLogMapper aiHostingLogMapper;
     private final PlotMapper plotMapper;
     private final RecipeMapper recipeMapper;
     private final MqttService mqttService;
@@ -1064,24 +1068,94 @@ public class AiController {
     }
     
     /**
-     * 获取所有AI报告
+     * 获取所有AI报告（包括AI托管日志）
      */
     @GetMapping("/reports")
-    public Result<List<AiReport>> getAllReports(
+    public Result<List<UnifiedReportDTO>> getAllReports(
             @RequestParam(value = "reportType", required = false) String reportType,
             @RequestParam(value = "startDate", required = false) String startDate,
             @RequestParam(value = "endDate", required = false) String endDate) {
         try {
-            List<AiReport> reports = aiReportMapper.selectList(null);
+            List<UnifiedReportDTO> unifiedReports = new ArrayList<>();
             
-            // 按类型过滤
+            // 1. 获取AI报告
+            List<AiReport> reports = aiReportMapper.selectList(null);
+            for (AiReport report : reports) {
+                UnifiedReportDTO dto = new UnifiedReportDTO();
+                dto.setSourceType("ai_report");
+                dto.setId(report.getId());
+                dto.setReportType(report.getReportType());
+                dto.setReportTitle(report.getReportTitle());
+                dto.setReportContent(report.getReportContent());
+                dto.setStartDate(report.getStartDate());
+                dto.setEndDate(report.getEndDate());
+                dto.setDataCount(report.getDataCount());
+                dto.setCreatedAt(report.getCreatedAt());
+                dto.setUpdatedAt(report.getUpdatedAt());
+                dto.setExecutionTime(report.getCreatedAt()); // 使用创建时间作为执行时间
+                unifiedReports.add(dto);
+            }
+            
+            // 2. 获取AI托管日志
+            List<AiHostingLog> hostingLogs = aiHostingLogMapper.selectList(null);
+            for (AiHostingLog log : hostingLogs) {
+                UnifiedReportDTO dto = new UnifiedReportDTO();
+                dto.setSourceType("ai_hosting_log");
+                dto.setId(log.getId());
+                dto.setReportType("ai_hosting_execution"); // 统一类型标识
+                dto.setReportTitle("AI自动托管执行报告 - " + 
+                    (log.getStatus() != null ? log.getStatus() : "未知状态"));
+                // 构建报告内容
+                StringBuilder content = new StringBuilder();
+                content.append("## AI自动托管执行报告\n\n");
+                content.append("**执行时间**: ").append(
+                    log.getExecutionTime() != null ? 
+                        new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(log.getExecutionTime()) : "未知")
+                    .append("\n\n");
+                content.append("**执行状态**: ").append(log.getStatus() != null ? log.getStatus() : "未知").append("\n\n");
+                
+                if (log.getActionsTaken() != null && !log.getActionsTaken().isEmpty()) {
+                    content.append("**执行的操作**:\n").append(log.getActionsTaken()).append("\n\n");
+                }
+                if (log.getIssuesDetected() != null && !log.getIssuesDetected().isEmpty()) {
+                    content.append("**检测到的问题**:\n").append(log.getIssuesDetected()).append("\n\n");
+                }
+                if (log.getEmailContent() != null && !log.getEmailContent().isEmpty()) {
+                    content.append("**邮件内容**:\n").append(log.getEmailContent()).append("\n\n");
+                }
+                if (log.getExecutionDurationMs() != null) {
+                    content.append("**执行耗时**: ").append(log.getExecutionDurationMs()).append(" 毫秒\n\n");
+                }
+                if (log.getErrorMessage() != null && !log.getErrorMessage().isEmpty()) {
+                    content.append("**错误信息**: ").append(log.getErrorMessage()).append("\n\n");
+                }
+                
+                dto.setReportContent(content.toString());
+                dto.setStatus(log.getStatus());
+                dto.setActionsTaken(log.getActionsTaken());
+                dto.setIssuesDetected(log.getIssuesDetected());
+                dto.setEmailSent(log.getEmailSent());
+                dto.setEmailContent(log.getEmailContent());
+                dto.setExecutionDurationMs(log.getExecutionDurationMs());
+                dto.setErrorMessage(log.getErrorMessage());
+                dto.setExecutionTime(log.getExecutionTime());
+                dto.setCreatedAt(log.getCreatedAt());
+                unifiedReports.add(dto);
+            }
+            
+            // 3. 按类型过滤
             if (reportType != null && !reportType.isEmpty()) {
-                reports = reports.stream()
-                    .filter(r -> reportType.equals(r.getReportType()))
+                unifiedReports = unifiedReports.stream()
+                    .filter(r -> {
+                        if ("ai_hosting_execution".equals(reportType)) {
+                            return "ai_hosting_log".equals(r.getSourceType());
+                        }
+                        return reportType.equals(r.getReportType());
+                    })
                     .collect(Collectors.toList());
             }
             
-            // 按日期范围过滤
+            // 4. 按日期范围过滤
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
                 try {
                     LocalDate start = LocalDate.parse(startDate);
@@ -1089,10 +1163,11 @@ public class AiController {
                     Date startDateTime = Date.from(start.atStartOfDay(ZoneId.systemDefault()).toInstant());
                     Date endDateTime = Date.from(end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
                     
-                    reports = reports.stream()
+                    unifiedReports = unifiedReports.stream()
                         .filter(r -> {
-                            if (r.getCreatedAt() == null) return false;
-                            return r.getCreatedAt().after(startDateTime) && r.getCreatedAt().before(endDateTime);
+                            Date timeToCheck = r.getExecutionTime() != null ? r.getExecutionTime() : r.getCreatedAt();
+                            if (timeToCheck == null) return false;
+                            return timeToCheck.after(startDateTime) && timeToCheck.before(endDateTime);
                         })
                         .collect(Collectors.toList());
                 } catch (Exception e) {
@@ -1100,13 +1175,15 @@ public class AiController {
                 }
             }
             
-            // 按创建时间倒序排序
-            reports.sort((a, b) -> {
-                if (a.getCreatedAt() == null || b.getCreatedAt() == null) return 0;
-                return b.getCreatedAt().compareTo(a.getCreatedAt());
+            // 5. 按执行时间倒序排序
+            unifiedReports.sort((a, b) -> {
+                Date timeA = a.getExecutionTime() != null ? a.getExecutionTime() : a.getCreatedAt();
+                Date timeB = b.getExecutionTime() != null ? b.getExecutionTime() : b.getCreatedAt();
+                if (timeA == null || timeB == null) return 0;
+                return timeB.compareTo(timeA);
             });
             
-            return Result.success(reports);
+            return Result.success(unifiedReports);
             
         } catch (Exception e) {
             log.error("获取AI报告失败: {}", e.getMessage(), e);
@@ -1115,20 +1192,111 @@ public class AiController {
     }
     
     /**
-     * 根据ID获取AI报告
+     * 根据ID获取AI报告（支持AI报告和AI托管日志）
      */
     @GetMapping("/reports/{id}")
-    public Result<AiReport> getReportById(@PathVariable Long id) {
+    public Result<UnifiedReportDTO> getReportById(
+            @PathVariable Long id,
+            @RequestParam(value = "sourceType", required = false) String sourceType) {
         try {
-            AiReport report = aiReportMapper.selectById(id);
-            if (report == null) {
+            UnifiedReportDTO dto = null;
+            
+            // 如果指定了sourceType，直接查询对应类型
+            if ("ai_hosting_log".equals(sourceType)) {
+                AiHostingLog log = aiHostingLogMapper.selectById(id);
+                if (log != null) {
+                    dto = convertHostingLogToDTO(log);
+                }
+            } else {
+                // 先尝试查询AI报告
+                AiReport report = aiReportMapper.selectById(id);
+                if (report != null) {
+                    dto = convertReportToDTO(report);
+                } else {
+                    // 如果AI报告不存在，尝试查询托管日志
+                    AiHostingLog log = aiHostingLogMapper.selectById(id);
+                    if (log != null) {
+                        dto = convertHostingLogToDTO(log);
+                    }
+                }
+            }
+            
+            if (dto == null) {
                 return Result.error(404, "报告不存在");
             }
-            return Result.success(report);
+            return Result.success(dto);
         } catch (Exception e) {
             log.error("获取AI报告失败: {}", e.getMessage(), e);
             return Result.error("获取AI报告失败: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 将AI报告转换为UnifiedReportDTO
+     */
+    private UnifiedReportDTO convertReportToDTO(AiReport report) {
+        UnifiedReportDTO dto = new UnifiedReportDTO();
+        dto.setSourceType("ai_report");
+        dto.setId(report.getId());
+        dto.setReportType(report.getReportType());
+        dto.setReportTitle(report.getReportTitle());
+        dto.setReportContent(report.getReportContent());
+        dto.setStartDate(report.getStartDate());
+        dto.setEndDate(report.getEndDate());
+        dto.setDataCount(report.getDataCount());
+        dto.setCreatedAt(report.getCreatedAt());
+        dto.setUpdatedAt(report.getUpdatedAt());
+        dto.setExecutionTime(report.getCreatedAt());
+        return dto;
+    }
+    
+    /**
+     * 将AI托管日志转换为UnifiedReportDTO
+     */
+    private UnifiedReportDTO convertHostingLogToDTO(AiHostingLog log) {
+        UnifiedReportDTO dto = new UnifiedReportDTO();
+        dto.setSourceType("ai_hosting_log");
+        dto.setId(log.getId());
+        dto.setReportType("ai_hosting_execution");
+        dto.setReportTitle("AI自动托管执行报告 - " + 
+            (log.getStatus() != null ? log.getStatus() : "未知状态"));
+        
+        // 构建报告内容
+        StringBuilder content = new StringBuilder();
+        content.append("## AI自动托管执行报告\n\n");
+        content.append("**执行时间**: ").append(
+            log.getExecutionTime() != null ? 
+                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(log.getExecutionTime()) : "未知")
+            .append("\n\n");
+        content.append("**执行状态**: ").append(log.getStatus() != null ? log.getStatus() : "未知").append("\n\n");
+        
+        if (log.getActionsTaken() != null && !log.getActionsTaken().isEmpty()) {
+            content.append("**执行的操作**:\n").append(log.getActionsTaken()).append("\n\n");
+        }
+        if (log.getIssuesDetected() != null && !log.getIssuesDetected().isEmpty()) {
+            content.append("**检测到的问题**:\n").append(log.getIssuesDetected()).append("\n\n");
+        }
+        if (log.getEmailContent() != null && !log.getEmailContent().isEmpty()) {
+            content.append("**邮件内容**:\n").append(log.getEmailContent()).append("\n\n");
+        }
+        if (log.getExecutionDurationMs() != null) {
+            content.append("**执行耗时**: ").append(log.getExecutionDurationMs()).append(" 毫秒\n\n");
+        }
+        if (log.getErrorMessage() != null && !log.getErrorMessage().isEmpty()) {
+            content.append("**错误信息**: ").append(log.getErrorMessage()).append("\n\n");
+        }
+        
+        dto.setReportContent(content.toString());
+        dto.setStatus(log.getStatus());
+        dto.setActionsTaken(log.getActionsTaken());
+        dto.setIssuesDetected(log.getIssuesDetected());
+        dto.setEmailSent(log.getEmailSent());
+        dto.setEmailContent(log.getEmailContent());
+        dto.setExecutionDurationMs(log.getExecutionDurationMs());
+        dto.setErrorMessage(log.getErrorMessage());
+        dto.setExecutionTime(log.getExecutionTime());
+        dto.setCreatedAt(log.getCreatedAt());
+        return dto;
     }
     
     /**
