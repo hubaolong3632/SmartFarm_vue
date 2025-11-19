@@ -12,7 +12,9 @@ import {
   Picture as PictureIcon,
   Clock as ClockIcon,
   Monitor as MonitorIcon,
-  Bell as BellIcon
+  Bell as BellIcon,
+  InfoFilled as Temperature,
+  SuccessFilled as Water
 } from '@element-plus/icons-vue'
 import EChartLine from '../components/EChartLine.vue'
 import AlertsPanel from '../components/AlertsPanel.vue'

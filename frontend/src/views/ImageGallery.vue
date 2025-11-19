@@ -9,9 +9,12 @@ import {
   Refresh as RefreshIcon,
   Filter as FilterIcon,
   Clock as ClockIcon,
-
   Box as BoxIcon,
   Sunny as SunnyIcon,
+  InfoFilled as ThermometerIcon,
+  SuccessFilled as WaterIcon,
+  WarningFilled as CloudyIcon,
+  Operation as WindPowerIcon
 } from '@element-plus/icons-vue'
 
 const store = useGreenhouseStore()
