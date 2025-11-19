@@ -4,13 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ad2c58aa-eedd-48f9-ae33-5a7292b921cd" name="更改" comment="所有文件">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/stores/greenhouse.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/stores/greenhouse.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/views/Dashboard.vue" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/views/Dashboard.vue" afterDir="false" />
-    </list>
+    <list default="true" id="ad2c58aa-eedd-48f9-ae33-5a7292b921cd" name="更改" comment="所有文件" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -117,7 +111,7 @@
       <updated>1763012164517</updated>
       <workItem from="1763012166137" duration="41364000" />
       <workItem from="1763443056509" duration="142000" />
-      <workItem from="1763444470628" duration="6243000" />
+      <workItem from="1763444470628" duration="6542000" />
     </task>
     <task id="LOCAL-00001" summary="c1">
       <option name="closed" value="true" />
@@ -399,7 +393,23 @@
       <option name="project" value="LOCAL" />
       <updated>1763519606273</updated>
     </task>
-    <option name="localTasksCounter" value="36" />
+    <task id="LOCAL-00036" summary="所有文件">
+      <option name="closed" value="true" />
+      <created>1763520360923</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1763520360923</updated>
+    </task>
+    <task id="LOCAL-00037" summary="所有文件">
+      <option name="closed" value="true" />
+      <created>1763520403869</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1763520403869</updated>
+    </task>
+    <option name="localTasksCounter" value="38" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
