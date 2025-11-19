@@ -46,6 +46,12 @@ const router = createRouter({
       // AI分析报告历史：查看和管理保存的报告
       component: () => import('../views/AiReportHistory.vue'),
     },
+    {
+      path: '/ai-hosting',
+      name: 'aiHosting',
+      // AI自动托管：配置和管理AI自动托管功能
+      component: () => import('../views/AiHosting.vue'),
+    },
   ],
 })
 

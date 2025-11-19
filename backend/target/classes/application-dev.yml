@@ -24,6 +24,21 @@ spring:
     date-format: yyyy-MM-dd HH:mm:ss
     default-property-inclusion: non_null  # 不序列化 null 值
 
+  # 邮件配置
+  mail:
+    enabled: true  # 是否启用邮件服务
+    host: smtp.qq.com  # SMTP服务器地址（QQ邮箱示例）
+    port: 587  # SMTP端口
+    username: 911412667@qq.com  # 发件人邮箱
+    password: heaopiotvvmmbahg  # 邮箱授权码（不是登录密码）
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
 # 服务器环境
 #spring:
 #  # 数据源配置

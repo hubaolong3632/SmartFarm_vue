@@ -16,6 +16,7 @@
         <el-menu-item index="/gallery">图片集</el-menu-item>
         <el-menu-item index="/ai-analysis">AI自动化分析</el-menu-item>
         <el-menu-item index="/ai-reports">AI报告历史</el-menu-item>
+        <el-menu-item index="/ai-hosting">AI自动托管</el-menu-item>
       </el-menu>
     </el-header>
     <el-main style="background:#f6f7f9;">

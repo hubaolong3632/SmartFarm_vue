@@ -544,5 +544,144 @@ public class AiService {
             return result;
         }
     }
+    
+    /**
+     * AI托管专用分析：分析今天最新的图片和温度数据，提供控制建议
+     * @param images 今天最新的图片列表（最多10张）
+     * @param temperatureRecords 今天最新的温度记录列表（最多30条）
+     * @return 包含分析结果、控制建议和报告的Map
+     */
+    public Map<String, Object> analyzeForHosting(List<com.greenhouse.entity.Image> images, 
+                                                  List<com.greenhouse.entity.SensorData> temperatureRecords) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("你是一个专业的智能温室AI分析系统。请分析以下数据并提供控制建议。\n\n");
+        
+        // 1. 图片数据分析
+        prompt.append("## 1. 今天最新的图片数据（共").append(images.size()).append("张）\n\n");
+        if (images.isEmpty()) {
+            prompt.append("今天暂无图片数据。\n\n");
+        } else {
+            for (int i = 0; i < images.size(); i++) {
+                com.greenhouse.entity.Image img = images.get(i);
+                prompt.append(String.format(
+                    "图片%d: 时间=%s, 温度=%.1f°C, 湿度=%.1f%%, 土壤湿度=%.1f%%, 光照=%d lux, 异常=%s",
+                    i + 1,
+                    img.getRecordTime() != null ? new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(img.getRecordTime()) : "未知",
+                    img.getTemperatureC() != null ? img.getTemperatureC().doubleValue() : 0.0,
+                    img.getHumidityPct() != null ? img.getHumidityPct().doubleValue() : 0.0,
+                    img.getSoilMoisturePct() != null ? img.getSoilMoisturePct().doubleValue() : 0.0,
+                    img.getLightLux() != null ? img.getLightLux() : 0,
+                    Boolean.TRUE.equals(img.getIsAbnormal()) ? "是" : "否"
+                ));
+                if (Boolean.TRUE.equals(img.getIsAbnormal()) && img.getAbnormalReason() != null) {
+                    prompt.append(", 异常原因=").append(img.getAbnormalReason());
+                }
+                prompt.append("\n");
+            }
+        }
+        
+        // 2. 温度数据分析
+        prompt.append("\n## 2. 今天最新的温度记录（共").append(temperatureRecords.size()).append("条）\n\n");
+        if (temperatureRecords.isEmpty()) {
+            prompt.append("今天暂无温度数据。\n\n");
+        } else {
+            // 计算统计信息
+            double sum = 0;
+            double max = Double.MIN_VALUE;
+            double min = Double.MAX_VALUE;
+            for (com.greenhouse.entity.SensorData record : temperatureRecords) {
+                if (record.getTemperatureC() != null) {
+                    double temp = record.getTemperatureC().doubleValue();
+                    sum += temp;
+                    max = Math.max(max, temp);
+                    min = Math.min(min, temp);
+                }
+            }
+            double avg = temperatureRecords.size() > 0 ? sum / temperatureRecords.size() : 0;
+            
+            prompt.append(String.format("温度统计: 平均=%.1f°C, 最高=%.1f°C, 最低=%.1f°C\n", avg, max, min));
+            prompt.append("\n详细记录:\n");
+            for (int i = 0; i < Math.min(temperatureRecords.size(), 10); i++) {
+                com.greenhouse.entity.SensorData record = temperatureRecords.get(i);
+                prompt.append(String.format(
+                    "记录%d: 时间=%s, 温度=%.1f°C, 湿度=%.1f%%, 土壤湿度=%.1f%%, 光照=%d lux\n",
+                    i + 1,
+                    record.getRecordTime() != null ? new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(record.getRecordTime()) : "未知",
+                    record.getTemperatureC() != null ? record.getTemperatureC().doubleValue() : 0.0,
+                    record.getHumidityPct() != null ? record.getHumidityPct().doubleValue() : 0.0,
+                    record.getSoilMoisturePct() != null ? record.getSoilMoisturePct().doubleValue() : 0.0,
+                    record.getLightLux() != null ? record.getLightLux() : 0
+                ));
+            }
+            if (temperatureRecords.size() > 10) {
+                prompt.append("... (还有").append(temperatureRecords.size() - 10).append("条记录)\n");
+            }
+        }
+        
+        prompt.append("\n## 请提供以下分析：\n");
+        prompt.append("1. **环境状况分析**：总结当前温室环境状况，包括温度趋势、湿度状况、光照情况等\n");
+        prompt.append("2. **异常情况识别**：识别可能存在的问题和风险\n");
+        prompt.append("3. **控制建议**：以JSON格式返回具体的控制操作建议，格式如下：\n");
+        prompt.append("```json\n");
+        prompt.append("{\n");
+        prompt.append("  \"analysis\": \"详细的环境分析报告（Markdown格式）\",\n");
+        prompt.append("  \"issues\": [\"问题1\", \"问题2\"],\n");
+        prompt.append("  \"recommendations\": [\n");
+        prompt.append("    {\"type\": \"light\", \"action\": \"on/off\", \"reason\": \"原因说明\"},\n");
+        prompt.append("    {\"type\": \"water\", \"action\": \"start/stop\", \"reason\": \"原因说明\"},\n");
+        prompt.append("    {\"type\": \"recipe\", \"plotId\": 1, \"recipeId\": 1, \"executions\": 1, \"reason\": \"原因说明\"}\n");
+        prompt.append("  ],\n");
+        prompt.append("  \"summary\": \"简要总结\"\n");
+        prompt.append("}\n");
+        prompt.append("```\n");
+        prompt.append("\n注意：\n");
+        prompt.append("- 如果检测到光照不足（<8000 lux），建议开启补光灯\n");
+        prompt.append("- 如果检测到土壤湿度低（<35%），建议启动抽水\n");
+        prompt.append("- 如果检测到温度异常、湿度异常等，请在issues中列出\n");
+        prompt.append("- recommendations中的操作应该是基于数据分析得出的合理建议\n");
+        
+        String response = callAiApi(prompt.toString());
+        
+        // 解析AI响应
+        try {
+            Map<String, Object> result = new HashMap<>();
+            
+            // 尝试提取JSON部分
+            String jsonStr = response;
+            if (response.contains("```json")) {
+                int start = response.indexOf("```json") + 7;
+                int end = response.indexOf("```", start);
+                if (end > start) {
+                    jsonStr = response.substring(start, end).trim();
+                }
+            } else if (response.contains("```")) {
+                int start = response.indexOf("```") + 3;
+                int end = response.indexOf("```", start);
+                if (end > start) {
+                    jsonStr = response.substring(start, end).trim();
+                }
+            }
+            
+            // 解析JSON
+            Map<String, Object> aiResult = objectMapper.readValue(jsonStr, Map.class);
+            result.put("analysis", aiResult.getOrDefault("analysis", response));
+            result.put("issues", aiResult.getOrDefault("issues", new ArrayList<>()));
+            result.put("recommendations", aiResult.getOrDefault("recommendations", new ArrayList<>()));
+            result.put("summary", aiResult.getOrDefault("summary", "AI分析完成"));
+            result.put("rawResponse", response);
+            
+            return result;
+        } catch (Exception e) {
+            log.error("解析AI托管分析结果失败: {}", e.getMessage(), e);
+            // 如果解析失败，返回原始响应
+            Map<String, Object> result = new HashMap<>();
+            result.put("analysis", response);
+            result.put("issues", new ArrayList<>());
+            result.put("recommendations", new ArrayList<>());
+            result.put("summary", "AI分析完成，但解析结果时出错: " + e.getMessage());
+            result.put("rawResponse", response);
+            return result;
+        }
+    }
 }
 

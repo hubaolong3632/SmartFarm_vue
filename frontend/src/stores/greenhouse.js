@@ -1129,6 +1129,66 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     }
   }
   
+  // ========== AI托管功能 ==========
+  
+  /**
+   * 获取AI托管配置
+   */
+  async function getAiHostingConfig() {
+    try {
+      const data = await request.get('/ai-hosting/config')
+      return data
+    } catch (error) {
+      console.error('获取AI托管配置失败:', error)
+      return null
+    }
+  }
+  
+  /**
+   * 更新AI托管配置
+   */
+  async function updateAiHostingConfig(config) {
+    try {
+      const data = await request.put('/ai-hosting/config', config)
+      return data
+    } catch (error) {
+      console.error('更新AI托管配置失败:', error)
+      throw error
+    }
+  }
+  
+  /**
+   * 获取AI托管执行日志
+   */
+  async function getAiHostingLogs(limit = 50) {
+    try {
+      const data = await request.get('/ai-hosting/logs', { limit })
+      return data
+    } catch (error) {
+      console.error('获取AI托管日志失败:', error)
+      return []
+    }
+  }
+  
+  /**
+   * 获取AI托管统计信息
+   */
+  async function getAiHostingStats() {
+    try {
+      const data = await request.get('/ai-hosting/stats')
+      return data
+    } catch (error) {
+      console.error('获取AI托管统计失败:', error)
+      return {
+        totalExecutions: 0,
+        successCount: 0,
+        failedCount: 0,
+        partialCount: 0,
+        successRate: 0
+      }
+    }
+  }
+  
   // ========== 导出 ==========
   
   return {
@@ -1215,6 +1275,12 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     setAutoReportEnabled,
     
     // AI执行操作
-    executeAiAction
+    executeAiAction,
+    
+    // AI托管功能
+    getAiHostingConfig,
+    updateAiHostingConfig,
+    getAiHostingLogs,
+    getAiHostingStats
   }
 })

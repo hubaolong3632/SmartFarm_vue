@@ -40,5 +40,11 @@ public interface ImageMapper extends BaseMapper<Image> {
      */
     @Select("SELECT * FROM images WHERE plot_id = #{plotId} ORDER BY record_time DESC")
     List<Image> findByPlotIdOrderByRecordTimeDesc(@Param("plotId") Integer plotId);
+    
+    /**
+     * 查询今天最新的N张图片
+     */
+    @Select("SELECT * FROM images WHERE DATE(record_time) = CURDATE() ORDER BY record_time DESC LIMIT #{limit}")
+    List<Image> findTodayLatestImages(@Param("limit") int limit);
 }
 

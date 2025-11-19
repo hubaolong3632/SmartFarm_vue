@@ -35,6 +35,12 @@ public interface SensorDataMapper extends BaseMapper<SensorData> {
     List<SensorData> findLatestRecords(@Param("limit") int limit);
     
     /**
+     * 查询今天最新的N条温度记录（按时间倒序）
+     */
+    @Select("SELECT * FROM sensor_data WHERE DATE(record_time) = CURDATE() ORDER BY record_time DESC LIMIT #{limit}")
+    List<SensorData> findTodayLatestTemperatureRecords(@Param("limit") int limit);
+    
+    /**
      * 插入基础字段（兼容旧表结构，不包含新字段）
      * 用于降级处理：当新字段不存在时使用此方法
      */
