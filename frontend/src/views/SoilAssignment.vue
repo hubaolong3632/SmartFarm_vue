@@ -148,7 +148,7 @@ function addSchedule(plot) {
                 </el-select>
               </el-form-item>
               
-              <!-- 每月执行：精确时间 -->
+<!--              &lt;!&ndash; 每月执行：精确时间 &ndash;&gt;-->
               <el-form-item v-if="ensureSched(plot).scheduleType === 'monthly'" label="精确时间">
                 <el-date-picker
                   v-model="ensureSched(plot).scheduleDatetime"
@@ -160,7 +160,7 @@ function addSchedule(plot) {
                 />
                 <span style="margin-left: 8px; color: #999; font-size: 12px;">或使用下面的时间（每月同一天）</span>
               </el-form-item>
-              
+
               <!-- 时间选择（每天/每周/每月都可以用） -->
               <el-form-item label="时间">
                 <el-time-select
