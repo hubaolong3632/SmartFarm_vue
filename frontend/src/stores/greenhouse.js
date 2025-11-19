@@ -131,7 +131,7 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
   async function loadSensorData() {
     try {
       const data = await request.get('/sensor-data/today')
-      console.log('收到最新30条传感器数据:', data)
+      // console.log('收到最新30条传感器数据:', data)
       if (data && Array.isArray(data)) {
         const processed = data
           .map(item => {
@@ -189,11 +189,11 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
           .map(({ dateObj, ...rest }) => rest)
         
         hourly.value = processed
-        console.log('处理后的折线图数据:', hourly.value)
+        // console.log('处理后的折线图数据:', hourly.value)
         console.log('数据点数:', hourly.value.length)
         if (hourly.value.length > 0) {
-          console.log('最早数据时间:', new Date(hourly.value[0].time).toLocaleString())
-          console.log('最新数据时间:', new Date(hourly.value[hourly.value.length - 1].time).toLocaleString())
+          // console.log('最早数据时间:', new Date(hourly.value[0].time).toLocaleString())
+          // console.log('最新数据时间:', new Date(hourly.value[hourly.value.length - 1].time).toLocaleString())
         }
       } else {
         console.warn('传感器数据格式不正确:', data)

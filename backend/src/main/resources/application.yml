@@ -48,7 +48,7 @@ mybatis-plus:
 # EMQX MQTT 配置
 emqx:
   broker-url: tcp://mqtt.00000.work:1883  # EMQX 服务器地址
-  client-id: springboot-4  # 客户端ID
+  client-id: springboot-5  # 客户端ID
   username:  # MQTT 用户名（可选）
   password:  # MQTT 密码（可选）
   topic: text1  # 订阅的主题

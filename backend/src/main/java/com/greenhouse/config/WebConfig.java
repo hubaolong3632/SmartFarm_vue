@@ -1,6 +1,8 @@
 package com.greenhouse.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -8,10 +10,28 @@ import java.io.File;
 
 /**
  * Web配置类
- * 配置静态资源访问
+ * 配置静态资源访问和拦截器
  */
 @Configuration
+@RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
+    
+    private final JwtInterceptor jwtInterceptor;
+    
+    /**
+     * 配置拦截器
+     */
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(jwtInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns(
+                    "/auth/login",
+                    "/auth/verify",
+                    "/file/**",
+                    "/error"
+                );
+    }
     
     /**
      * 配置静态资源处理器

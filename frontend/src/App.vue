@@ -1,12 +1,18 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Menu as MenuIcon } from '@element-plus/icons-vue'
+import { Menu as MenuIcon, User as UserIcon } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
+import { useUserStore } from './stores/user'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 const drawerVisible = ref(false)
 const isMobile = ref(false)
+
+// 检查是否为登录页
+const isLoginPage = computed(() => route.path === '/login')
 
 function checkMobile() {
   isMobile.value = window.innerWidth < 768
@@ -24,9 +30,32 @@ function handleMenuClick(path) {
   drawerVisible.value = false
 }
 
+async function handleLogout() {
+  try {
+    await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    userStore.clearUser()
+    router.push('/login')
+  } catch {
+    // 用户取消
+  }
+}
+
+function handleUserCommand(command) {
+  if (command === 'logout') {
+    handleLogout()
+  }
+}
+
 onMounted(() => {
   checkMobile()
   window.addEventListener('resize', handleResize)
+  // 初始化用户信息
+  userStore.initUser()
 })
 
 onUnmounted(() => {
@@ -36,7 +65,13 @@ onUnmounted(() => {
 
 <!-- 应用布局：头部导航 + 主内容区域，承载所有页面 -->
 <template>
-  <el-container style="min-height: 100vh;">
+  <!-- 登录页面不显示导航栏 -->
+  <div v-if="isLoginPage" class="login-wrapper">
+    <router-view />
+  </div>
+  
+  <!-- 其他页面显示完整布局 -->
+  <el-container v-else style="min-height: 100vh;">
     <el-header class="fixed-header">
       <!-- 标题：系统名称 -->
       <div class="header-title">智能温室</div>
@@ -67,6 +102,19 @@ onUnmounted(() => {
         @click="drawerVisible = true"
         class="mobile-menu-btn"
       />
+      
+      <!-- 用户信息下拉菜单 -->
+      <el-dropdown class="user-dropdown" @command="handleUserCommand">
+        <span class="user-info">
+          <el-icon><UserIcon /></el-icon>
+          <span class="username">{{ userStore.user?.nickname || userStore.user?.username || '用户' }}</span>
+        </span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </el-header>
 
     <!-- 移动端侧边栏菜单 -->
@@ -106,6 +154,9 @@ onUnmounted(() => {
         <el-menu-item index="/ai-hosting">
           <span>AI自动托管</span>
         </el-menu-item>
+        <el-menu-item @click="handleLogout">
+          <span>退出登录</span>
+        </el-menu-item>
       </el-menu>
     </el-drawer>
 
@@ -119,6 +170,10 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.login-wrapper {
+  min-height: 100vh;
+}
+
 .fixed-header {
   position: fixed;
   top: 0;
@@ -148,6 +203,31 @@ onUnmounted(() => {
 
 .mobile-menu-btn {
   margin-left: auto;
+}
+
+.user-dropdown {
+  margin-left: auto;
+  cursor: pointer;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  color: #333;
+  font-size: 14px;
+}
+
+.user-info:hover {
+  color: #409eff;
+}
+
+.username {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .main-content {
@@ -183,6 +263,10 @@ onUnmounted(() => {
   .fixed-header {
     padding: 0 12px;
     gap: 12px;
+  }
+  
+  .user-dropdown {
+    display: none;
   }
 }
 

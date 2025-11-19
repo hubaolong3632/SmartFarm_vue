@@ -37,24 +37,43 @@ service.interceptors.response.use(
   response => {
     const res = response.data
     
-    // 处理业务错误
-    if (res.code < 0) {
-      ElMessage.error(res.data || res.message || '请求失败')
-      return Promise.reject(new Error(res.data || res.message || '请求失败'))
+    // 如果没有code字段，可能是直接返回的数据，直接返回
+    if (res.code === undefined) {
+      return res
     }
     
-    // Token 失效处理
-    if (res.code === 11111) {
-      console.log('Token 失效，跳转登录页')
-      localStorage.removeItem('jwt')
-      return Promise.reject(new Error('Token 失效'))
+    // 处理业务错误（code不为200表示失败）
+    if (res.code !== 200 && res.code !== undefined) {
+      // Token失效特殊处理
+      if (res.code === 11111) {
+        console.log('Token 失效，跳转登录页')
+        localStorage.removeItem('jwt')
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
+        return Promise.reject(new Error('Token 失效'))
+      }
+      
+      // 其他错误
+      ElMessage.error(res.message || res.data || '请求失败')
+      return Promise.reject(new Error(res.message || res.data || '请求失败'))
     }
     
-    // 返回业务数据
+    // 返回业务数据（code为200时）
     return res.data !== undefined ? res.data : res
   },
   error => {
     console.error('响应错误:', error)
+    
+    // 处理401未授权错误（token失效）
+    if (error.response?.status === 401 || error.response?.data?.code === 11111) {
+      localStorage.removeItem('jwt')
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
+      return Promise.reject(error)
+    }
+    
     // 对于 400 错误，只在控制台输出，不弹出提示（避免频繁提示）
     if (error.response?.status === 400) {
       console.warn('请求参数错误:', error.response?.data?.message || error.message)
