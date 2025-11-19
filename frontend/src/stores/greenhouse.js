@@ -99,6 +99,30 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     return buckets
   })
   
+  // 植物状态日志（基于最新30条图片数据）
+  const imageStatusLogs = computed(() => {
+    // 获取最新30条图片数据
+    const latestImages = images.value.slice(0, 30)
+    if (latestImages.length === 0) return []
+    
+    // 按时间排序（从旧到新）
+    const sortedImages = [...latestImages].sort((a, b) => {
+      const timeA = new Date(a.time || a.recordTime).getTime()
+      const timeB = new Date(b.time || b.recordTime).getTime()
+      return timeA - timeB
+    })
+    
+    // 统计每个时间点的正常和异常数量
+    return sortedImages.map(img => {
+      const isAbnormal = img.isAbnormal || false
+      return {
+        time: img.time || img.recordTime,
+        normal: isAbnormal ? 0 : 1,
+        abnormal: isAbnormal ? 1 : 0
+      }
+    })
+  })
+  
   // ========== 数据加载函数 ==========
   
   /**
@@ -925,6 +949,7 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
       await loadExecutionLogs()
       await loadAlerts()
       await loadLatestImage() // 每5秒刷新最新图片
+      await loadAllImages() // 每5秒刷新图片数据（用于植物状态日志）
       evaluateAutomation()
     }, 5000) // 每5秒刷新一次
   }
@@ -1209,6 +1234,7 @@ export const useGreenhouseStore = defineStore('greenhouse', () => {
     selectedDate,
     images,
     latestImage,
+    imageStatusLogs,
     loadAllImages,
     loadAbnormalImages,
     loadLatestImage,

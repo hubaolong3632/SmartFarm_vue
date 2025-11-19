@@ -17,6 +17,7 @@ import {
   SuccessFilled as Water
 } from '@element-plus/icons-vue'
 import EChartLine from '../components/EChartLine.vue'
+import EChartMultiLine from '../components/EChartMultiLine.vue'
 import AlertsPanel from '../components/AlertsPanel.vue'
 import ControlsPanel from '../components/ControlsPanel.vue'
 import { useGreenhouseStore } from '../stores/greenhouse'
@@ -31,6 +32,7 @@ onMounted(() => {
   store.loadAllData().catch(err => console.error('加载数据失败:', err))
   store.loadExecutionsLast24().catch(err => console.error('加载执行日志失败:', err))
   store.loadLatestImage().catch(err => console.error('加载最新图片失败:', err))
+  store.loadAllImages().catch(err => console.error('加载图片数据失败:', err))
 })
 
 onUnmounted(() => {
@@ -256,6 +258,25 @@ function getStatusColor(value, type) {
               />
             </el-col>
           </el-row>
+        </el-card>
+
+        <!-- 植物状态日志图表 -->
+        <el-card class="chart-card" shadow="hover" style="margin-top: 16px;">
+          <template #header>
+            <div class="card-header">
+              <el-icon><PictureIcon /></el-icon>
+              <span>植物状态日志（最新30条图片）</span>
+            </div>
+          </template>
+          <EChartMultiLine
+            title="植物状态统计"
+            :data="store.imageStatusLogs"
+            :series="[
+              { name: '正常', dataKey: 'normal', color: '#10b981' },
+              { name: '异常', dataKey: 'abnormal', color: '#ef4444' }
+            ]"
+            height="240px"
+          />
         </el-card>
 
         <!-- 执行日志图表 -->

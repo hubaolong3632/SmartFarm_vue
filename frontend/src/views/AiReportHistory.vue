@@ -20,8 +20,41 @@ const showDetail = ref(false)
 
 // 筛选条件
 const filterType = ref('')
-const filterStartDate = ref('')
-const filterEndDate = ref('')
+const dateRange = ref([])
+
+// 格式化日期为 YYYY-MM-DD
+function formatDate(date) {
+  if (!date) return null
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// 设置今天
+function setToday() {
+  const today = new Date()
+  dateRange.value = [formatDate(today), formatDate(today)]
+  loadReports()
+}
+
+// 设置昨天
+function setYesterday() {
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  dateRange.value = [formatDate(yesterday), formatDate(yesterday)]
+  loadReports()
+}
+
+// 设置最近7天
+function setLast7Days() {
+  const end = new Date()
+  const start = new Date()
+  start.setDate(start.getDate() - 6) // 包括今天，所以是6天前
+  dateRange.value = [formatDate(start), formatDate(end)]
+  loadReports()
+}
 
 // 报告类型选项
 const reportTypes = [
@@ -38,8 +71,8 @@ const reportTypes = [
 async function loadReports() {
   loading.value = true
   try {
-    const startDate = filterStartDate.value || null
-    const endDate = filterEndDate.value || null
+    const startDate = dateRange.value && dateRange.value.length > 0 ? dateRange.value[0] : null
+    const endDate = dateRange.value && dateRange.value.length > 1 ? dateRange.value[1] : null
     const type = filterType.value || null
     const data = await store.getAllAiReports(type, startDate, endDate)
     if (data) {
@@ -94,8 +127,8 @@ function getReportTypeName(type) {
   return typeMap[type] || type
 }
 
-// 格式化日期
-function formatDate(date) {
+// 格式化日期显示
+function formatDateDisplay(date) {
   if (!date) return '-'
   return new Date(date).toLocaleString('zh-CN')
 }
@@ -118,7 +151,8 @@ const selectedReportHtml = computed(() => {
 })
 
 onMounted(() => {
-  loadReports()
+  // 默认查询今天
+  setToday()
 })
 </script>
 
@@ -133,44 +167,45 @@ onMounted(() => {
       </template>
       
       <!-- 筛选条件 -->
-      <el-form inline style="margin-bottom: 16px;">
-        <el-form-item label="报告类型">
-          <el-select v-model="filterType" placeholder="全部" style="width: 150px;" clearable>
-            <el-option
-              v-for="type in reportTypes"
-              :key="type.value"
-              :label="type.label"
-              :value="type.value"
+      <el-card shadow="never" style="margin-bottom: 16px;">
+        <el-form inline>
+          <el-form-item label="报告类型">
+            <el-select v-model="filterType" placeholder="全部" style="width: 150px;" clearable>
+              <el-option
+                v-for="type in reportTypes"
+                :key="type.value"
+                :label="type.label"
+                :value="type.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="时间范围">
+            <el-date-picker
+              v-model="dateRange"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              style="width: 300px;"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="开始日期">
-          <el-date-picker
-            v-model="filterStartDate"
-            type="date"
-            placeholder="选择日期"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
-            style="width: 150px;"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="结束日期">
-          <el-date-picker
-            v-model="filterEndDate"
-            type="date"
-            placeholder="选择日期"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
-            style="width: 150px;"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" size="small" @click="loadReports">查询</el-button>
-          <el-button size="small" @click="filterType = ''; filterStartDate = ''; filterEndDate = ''; loadReports()">重置</el-button>
-        </el-form-item>
-      </el-form>
+          </el-form-item>
+          <el-form-item>
+            <el-button size="small" @click="dateRange = []; filterType = ''; loadReports()">清除选择</el-button>
+            <el-button size="small" type="primary" @click="setToday">今天</el-button>
+            <el-button size="small" type="primary" @click="setYesterday">昨天</el-button>
+            <el-button size="small" type="primary" @click="setLast7Days">最近7天</el-button>
+            <el-button type="primary" size="small" @click="loadReports">查询</el-button>
+          </el-form-item>
+        </el-form>
+        <div v-if="dateRange && dateRange.length === 2" style="margin-top: 8px; color: #909399; font-size: 12px;">
+          已选择：{{ dateRange[0] }} 至 {{ dateRange[1] }}
+        </div>
+        <div v-else style="margin-top: 8px; color: #909399; font-size: 12px;">
+          未选择日期范围，将查询全部数据
+        </div>
+      </el-card>
       
       <!-- 报告列表 -->
       <el-table :data="reports" border v-loading="loading" style="width: 100%;">
@@ -184,10 +219,10 @@ onMounted(() => {
         <el-table-column label="数据日期/执行时间" width="200">
           <template #default="{ row }">
             <span v-if="row.sourceType === 'ai_hosting_log'">
-              {{ formatDate(row.executionTime) }}
+              {{ formatDateDisplay(row.executionTime) }}
             </span>
             <span v-else-if="row.startDate && row.endDate">
-              {{ formatDate(row.startDate) }} 至 {{ formatDate(row.endDate) }}
+              {{ formatDateDisplay(row.startDate) }} 至 {{ formatDateDisplay(row.endDate) }}
             </span>
             <span v-else>-</span>
           </template>
@@ -204,7 +239,7 @@ onMounted(() => {
         </el-table-column>
         <el-table-column label="创建时间" width="180">
           <template #default="{ row }">
-            {{ formatDate(row.createdAt) }}
+            {{ formatDateDisplay(row.createdAt) }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
@@ -242,10 +277,10 @@ onMounted(() => {
           </el-descriptions-item>
           <el-descriptions-item :label="selectedReport.sourceType === 'ai_hosting_log' ? '执行时间' : '数据日期'">
             <span v-if="selectedReport.sourceType === 'ai_hosting_log'">
-              {{ formatDate(selectedReport.executionTime) }}
+              {{ formatDateDisplay(selectedReport.executionTime) }}
             </span>
             <span v-else-if="selectedReport.startDate && selectedReport.endDate">
-              {{ formatDate(selectedReport.startDate) }} 至 {{ formatDate(selectedReport.endDate) }}
+              {{ formatDateDisplay(selectedReport.startDate) }} 至 {{ formatDateDisplay(selectedReport.endDate) }}
             </span>
             <span v-else>-</span>
           </el-descriptions-item>
@@ -266,7 +301,7 @@ onMounted(() => {
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="创建时间">
-            {{ formatDate(selectedReport.createdAt) }}
+            {{ formatDateDisplay(selectedReport.createdAt) }}
           </el-descriptions-item>
         </el-descriptions>
         

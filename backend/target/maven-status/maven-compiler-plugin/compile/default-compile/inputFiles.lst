@@ -8,6 +8,7 @@ D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\Image.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\util\ImageDataInserter.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\AlertController.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\PlotController.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\AiHostingController.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\ControlLogMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\ExecutionLogMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\ImageMapper.java
@@ -26,10 +27,13 @@ D:\vue\vue_text\backend\src\main\java\com\greenhouse\service\AiReportScheduleSer
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\Alert.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\AiController.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\ImageDataController.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\dto\UnifiedReportDTO.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\AiExecutionLogMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\PlotScheduleMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\AiReport.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\RecipeMapper.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\AiHostingConfig.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\AiHostingLog.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\PlotMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\PlotSchedule.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\SensorDataController.java
@@ -38,8 +42,11 @@ D:\vue\vue_text\backend\src\main\java\com\greenhouse\dto\RecipeDTO.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\Plot.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\service\MqttService.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\ExecutionLog.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\AiHostingConfigMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\AlertMapper.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\GreenhouseApplication.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\service\AiHostingService.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\service\EmailService.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\entity\ControlLog.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\dto\ImageDTO.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\controller\ControlController.java
@@ -51,3 +58,4 @@ D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\SensorDataMapper.jav
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\dto\PlotAssignmentDTO.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\config\WebConfig.java
 D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\AutomationSettingMapper.java
+D:\vue\vue_text\backend\src\main\java\com\greenhouse\mapper\AiHostingLogMapper.java
