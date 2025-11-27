@@ -5,37 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ad2c58aa-eedd-48f9-ae33-5a7292b921cd" name="更改" comment="所有文件">
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/config/JwtInterceptor.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/controller/AuthController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/dto/LoginDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/dto/LoginResponseDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/entity/User.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/mapper/UserMapper.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/service/UserService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/util/JwtUtil.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/stores/user.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/views/Login.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/config/WebConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/greenhouse/config/WebConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/target/classes/com/greenhouse/config/WebConfig.class" beforeDir="false" afterPath="$PROJECT_DIR$/backend/target/classes/com/greenhouse/config/WebConfig.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/target/greenhouse-api-1.0.0.jar" beforeDir="false" afterPath="$PROJECT_DIR$/backend/target/greenhouse-api-1.0.0.jar" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/target/greenhouse-api-1.0.0.jar.original" beforeDir="false" afterPath="$PROJECT_DIR$/backend/target/greenhouse-api-1.0.0.jar.original" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/AiAnalysis-B1SDooSo.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/AiAnalysis-CUtwwEog.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/AiHosting-CM8UNEIl.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/AiReportHistory-CwMhjlAr.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/AutomationSettings-C0S3iBJl.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/Dashboard-D2QDLRwZ.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/ImageGallery-Bjxsqldj.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/RecipeEditor-LGLqjRwZ.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/SoilAssignment-DveP2_rZ.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/greenhouse-2PAlvlsF.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-8zWxB_7z.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-CfFDl_lk.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/dist/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/views/AiAnalysis.vue" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/views/AiAnalysis.vue" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -92,7 +62,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected="npm.build">
+  <component name="RunManager" selected="Spring Boot.GreenhouseApplication">
     <configuration name="GreenhouseApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <module name="greenhouse-api" />
       <option name="SPRING_BOOT_MAIN_CLASS" value="com.greenhouse.GreenhouseApplication" />
@@ -145,6 +115,11 @@
       <workItem from="1763012166137" duration="41364000" />
       <workItem from="1763443056509" duration="142000" />
       <workItem from="1763444470628" duration="19337000" />
+      <workItem from="1763537582736" duration="49000" />
+      <workItem from="1763541672048" duration="1345000" />
+      <workItem from="1763620722177" duration="861000" />
+      <workItem from="1764141638156" duration="622000" />
+      <workItem from="1764231311859" duration="17000" />
     </task>
     <task id="LOCAL-00001" summary="c1">
       <option name="closed" value="true" />
@@ -530,7 +505,15 @@
       <option name="project" value="LOCAL" />
       <updated>1763535382990</updated>
     </task>
-    <option name="localTasksCounter" value="49" />
+    <task id="LOCAL-00049" summary="所有文件">
+      <option name="closed" value="true" />
+      <created>1763537597626</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1763537597626</updated>
+    </task>
+    <option name="localTasksCounter" value="50" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
